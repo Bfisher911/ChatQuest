@@ -1,0 +1,35 @@
+# Netlify deployment config for ChatQuest (Next.js 14 App Router).
+# The `@netlify/plugin-nextjs` plugin handles SSR, ISR, route handlers,
+# middleware, and the App Router automatically — no manual function wiring.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Pin the Node major to match local development.
+  NODE_VERSION = "20"
+  # Skip Husky / postinstall scripts that aren't needed in CI.
+  NPM_FLAGS = "--no-audit --no-fund"
+  # Cache Next.js build output between deploys.
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Streaming (SSE) support for /api/chat/stream — keep these unbuffered.
+[[headers]]
+  for = "/api/chat/stream"
+  [headers.values]
+    Cache-Control = "no-cache, no-transform"
+    X-Accel-Buffering = "no"
+
+# Long-running requests (RAG indexing on large PDFs may exceed 10s).
+[functions."api/kb/*"]
+  timeout = 60
+
+[functions."api/chat/*"]
+  timeout = 60
+
+[functions."api/grade/*"]
+  timeout = 60

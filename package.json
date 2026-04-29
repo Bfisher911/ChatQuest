@@ -48,6 +48,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.10",
     "@types/node": "^22.9.3",
     "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18.3.12",
