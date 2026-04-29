@@ -29,3 +29,6 @@ drizzle/
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Local Netlify folder
+.netlify

@@ -1,16 +1,45 @@
 import * as React from "react";
 import Link from "next/link";
-import { db } from "@/lib/db/client";
-import { plans } from "@/lib/db/schema";
+import { createClient } from "@/lib/supabase/server";
 import { Cassette, Chip, Eyebrow, Btn, Icon } from "@/components/brutalist";
 
 export const dynamic = "force-dynamic";
 
+// Reads via PostgREST (HTTPS) instead of direct Postgres so it works inside
+// any deploy target — including Netlify Lambdas where outbound :5432 may be
+// flaky. Plans are world-readable per RLS policy in 0009_policies.sql.
+type PlanRow = {
+  code: string;
+  name: string;
+  scope: string;
+  monthly_price_cents: number | null;
+  instructor_seats: number | null;
+  learner_seats: number | null;
+  monthly_token_budget: number | null;
+};
+
 export default async function PricingPage() {
-  const conn = db();
-  const all = await conn.select().from(plans);
-  const instructorPlans = all.filter((p) => p.scope === "instructor");
-  const orgPlans = all.filter((p) => p.scope === "organization");
+  const supabase = createClient();
+  const { data: all, error } = await supabase
+    .from("plans")
+    .select("code, name, scope, monthly_price_cents, instructor_seats, learner_seats, monthly_token_budget")
+    .order("display_order", { ascending: true });
+  if (error) {
+    return (
+      <div className="cq-page">
+        <Eyebrow>PRICING</Eyebrow>
+        <h1 className="cq-title-l" style={{ marginTop: 12, marginBottom: 12 }}>
+          PRICING UNAVAILABLE.
+        </h1>
+        <p style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>
+          {error.message}
+        </p>
+      </div>
+    );
+  }
+  const rows = (all ?? []) as PlanRow[];
+  const instructorPlans = rows.filter((p) => p.scope === "instructor");
+  const orgPlans = rows.filter((p) => p.scope === "organization");
 
   return (
     <div className="cq-page" style={{ maxWidth: 1280 }}>
@@ -24,12 +53,12 @@ export default async function PricingPage() {
         {instructorPlans.map((p, i) => (
           <Cassette key={p.code} small index={i + 1} indexWidth={4} title={p.name} meta={p.code.toUpperCase()} staticCard>
             <div className="cq-title-l" style={{ fontSize: 30, margin: "8px 0 12px" }}>
-              ${(p.monthlyPriceCents ?? 0) / 100}
+              ${(p.monthly_price_cents ?? 0) / 100}
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--muted)" }}> /mo</span>
             </div>
             <div className="cq-mono" style={{ fontSize: 13, lineHeight: 1.5 }}>
-              <div>{p.learnerSeats} learner seats</div>
-              <div>{((p.monthlyTokenBudget ?? 0) / 1000).toLocaleString()}K tokens / mo</div>
+              <div>{p.learner_seats} learner seats</div>
+              <div>{((p.monthly_token_budget ?? 0) / 1000).toLocaleString()}K tokens / mo</div>
             </div>
             <div style={{ marginTop: "auto" }}>
               <Btn sm asChild>
@@ -45,11 +74,11 @@ export default async function PricingPage() {
         {orgPlans.map((p, i) => (
           <Cassette key={p.code} small index={i + 5} indexWidth={4} title={p.name} meta={p.code.toUpperCase()} staticCard>
             <div className="cq-title-l" style={{ fontSize: 28, margin: "8px 0 12px" }}>
-              {p.code === "org_enterprise" ? "TALK TO US" : `$${(p.monthlyPriceCents ?? 0) / 100}/mo`}
+              {p.code === "org_enterprise" ? "TALK TO US" : `$${(p.monthly_price_cents ?? 0) / 100}/mo`}
             </div>
             <div className="cq-mono" style={{ fontSize: 13, lineHeight: 1.5 }}>
-              <div>{p.instructorSeats} instructor seats</div>
-              <div>{p.learnerSeats} learner seats</div>
+              <div>{p.instructor_seats} instructor seats</div>
+              <div>{p.learner_seats} learner seats</div>
             </div>
             <div style={{ marginTop: "auto" }}>
               <Btn sm asChild>

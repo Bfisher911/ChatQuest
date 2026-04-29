@@ -16,14 +16,21 @@ export function LoginForm({ next }: { next?: string }) {
     setPending(true);
     const fd = new FormData(e.currentTarget);
     if (next) fd.set("next", next);
-    const res = await signIn(fd);
-    setPending(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
+    try {
+      const res = await signIn(fd);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.push(res.next);
+      router.refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("NEXT_REDIRECT")) throw err;
+      setError(msg || "Unexpected error during sign in.");
+    } finally {
+      setPending(false);
     }
-    router.push(res.next);
-    router.refresh();
   }
 
   return (

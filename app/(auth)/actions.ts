@@ -31,13 +31,29 @@ export async function signUp(formData: FormData): Promise<SignUpResult> {
   }
   const { email, password, fullName, intent, organizationName, inviteToken } = parsed.data;
 
+  // Belt-and-suspenders: bail loudly if the deploy is missing required env vars.
+  // Without these we'd hang on the auth call until Netlify times out the function.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return { ok: false, error: "Server misconfiguration: NEXT_PUBLIC_SUPABASE_* env vars are missing." };
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { ok: false, error: "Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY is missing." };
+  }
+
   const supabase = createClient();
-  const { data: signed, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: fullName } },
-  });
-  if (error) return { ok: false, error: error.message };
+  let signed: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
+  try {
+    const r = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } },
+    });
+    if (r.error) return { ok: false, error: r.error.message };
+    signed = r.data;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Signup network error";
+    return { ok: false, error: `Auth signup failed: ${msg}` };
+  }
   const userId = signed.user?.id;
   if (!userId) return { ok: false, error: "Signup failed: missing user id." };
 
@@ -112,6 +128,12 @@ export async function signUp(formData: FormData): Promise<SignUpResult> {
   // Learner without invite is unusual — they remain unaffiliated until they redeem one.
 
   revalidatePath("/", "layout");
+  // If the project has email-confirmation enabled, signUp returns user+null session.
+  // The cookie won't be set, so /dashboard would just bounce to /login. Send them
+  // to /verify with a clear "check your inbox" message instead.
+  if (!signed.session) {
+    redirect("/verify");
+  }
   redirect("/dashboard");
 }
 

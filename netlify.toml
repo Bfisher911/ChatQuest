@@ -24,7 +24,13 @@
     Cache-Control = "no-cache, no-transform"
     X-Accel-Buffering = "no"
 
-# Long-running requests (RAG indexing on large PDFs may exceed 10s).
+# Generic function timeout. Server Actions, Drizzle queries against Supavisor,
+# and Supabase auth signUp can all exceed Netlify's 10s default — bump to 30s
+# globally so signup doesn't appear "stuck on Creating…".
+[functions]
+  timeout = 30
+
+# Long-running requests (RAG indexing, multi-turn chat streaming).
 [functions."api/kb/*"]
   timeout = 60
 

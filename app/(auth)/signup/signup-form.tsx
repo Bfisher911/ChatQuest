@@ -23,13 +23,20 @@ export function SignupForm({ inviteToken, intent }: { inviteToken?: string; inte
     const fd = new FormData(e.currentTarget);
     if (inviteToken) fd.set("inviteToken", inviteToken);
     fd.set("intent", selectedIntent);
-    const res = await signUp(fd);
-    setPending(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
+    try {
+      const res = await signUp(fd);
+      // On success the server action throws NEXT_REDIRECT — we won't reach here.
+      if (res && !res.ok) {
+        setError(res.error);
+      }
+    } catch (err) {
+      // Don't swallow the framework's redirect signal.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("NEXT_REDIRECT")) throw err;
+      setError(msg || "Unexpected error during signup.");
+    } finally {
+      setPending(false);
     }
-    // Server action redirects on success.
   }
 
   return (
