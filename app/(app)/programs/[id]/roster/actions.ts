@@ -32,10 +32,22 @@ export async function inviteLearner(formData: FormData) {
 
   const { data: program } = await supabase
     .from("programs")
-    .select("id, organization_id")
+    .select("id, organization_id, learner_pays")
     .eq("id", parsed.data.programId)
     .single();
   if (!program) return { ok: false as const, error: "Program not found" };
+
+  // Plan-feature seat enforcement (Phase D).
+  if (parsed.data.role === "learner" && !program.learner_pays) {
+    const { canSeatLearner } = await import("@/lib/billing/gate");
+    const seat = await canSeatLearner(program.organization_id);
+    if (!seat.ok) return { ok: false as const, error: seat.reason };
+  }
+  if (parsed.data.role === "instructor" || parsed.data.role === "ta") {
+    const { canSeatInstructor } = await import("@/lib/billing/gate");
+    const seat = await canSeatInstructor(program.organization_id);
+    if (!seat.ok) return { ok: false as const, error: seat.reason };
+  }
 
   // Already-existing user?
   const { data: existingUser } = await admin

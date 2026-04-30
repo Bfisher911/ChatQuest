@@ -26,6 +26,11 @@ export async function createProgram(formData: FormData) {
   });
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
+  // Plan-feature gate (Phase D).
+  const { canCreateProgram } = await import("@/lib/billing/gate");
+  const gate = await canCreateProgram(session.activeOrganizationId);
+  if (!gate.ok) return { ok: false as const, error: gate.reason };
+
   const supabase = createClient();
   const { data, error } = await supabase
     .from("programs")
