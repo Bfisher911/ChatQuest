@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Per-user rate limit — 30 chat messages per minute (Phase E.3).
+  const { limit } = await import("@/lib/ratelimit");
+  const rl = await limit(`chat:${user.id}`, { max: 30, windowSec: 60 });
+  if (!rl.success) {
+    return new Response(JSON.stringify({ error: "Slow down — too many messages." }), {
+      status: 429,
+      headers: { "Content-Type": "application/json", "Retry-After": String(Math.ceil((rl.reset - Date.now()) / 1000)) },
+    });
+  }
+
   const admin = createServiceRoleClient();
 
   // 1. Conversation + ownership
@@ -76,6 +86,18 @@ export async function POST(req: NextRequest) {
     return new Response(
       JSON.stringify({ error: "Token budget for this attempt is used up." }),
       { status: 400 },
+    );
+  }
+
+  // Plan-level monthly token cap (Phase E.1).
+  const { getMonthlyTokenUsage } = await import("@/lib/usage/check");
+  const usageStatus = await getMonthlyTokenUsage(conv.organization_id);
+  if (usageStatus.state === "exceeded") {
+    return new Response(
+      JSON.stringify({
+        error: `Monthly token budget exhausted (${usageStatus.used.toLocaleString()} / ${usageStatus.budget.toLocaleString()}). Upgrade the plan or wait until next cycle.`,
+      }),
+      { status: 402 },
     );
   }
 

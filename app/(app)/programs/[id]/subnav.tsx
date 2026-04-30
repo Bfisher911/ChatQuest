@@ -12,6 +12,7 @@ const TABS = [
   { label: "Knowledge", suffix: "/kb" },
   { label: "Roster", suffix: "/roster" },
   { label: "Gradebook", suffix: "/gradebook" },
+  { label: "Analytics", suffix: "/analytics" },
   { label: "Settings", suffix: "/settings" },
 ];
 

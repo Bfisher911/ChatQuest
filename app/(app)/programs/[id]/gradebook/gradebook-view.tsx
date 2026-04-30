@@ -97,6 +97,14 @@ export function GradebookView({
           <Chip ghost>{learners.length} LEARNERS</Chip>
           <Chip ghost>{nodes.length} COLUMNS</Chip>
           <Chip>{grades.filter((g) => g.status === "pending_review").length} PENDING</Chip>
+          <a
+            href={`/api/programs/${programId}/gradebook/csv`}
+            className="cq-btn cq-btn--ghost cq-btn--sm"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Icon name="download" /> EXPORT CSV
+          </a>
           <IconBtn aria-label="Settings"><Icon name="settings" /></IconBtn>
         </div>
       </div>
