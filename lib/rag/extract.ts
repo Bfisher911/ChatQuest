@@ -35,7 +35,10 @@ export async function extractDocument(
     mt === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
     lower.endsWith(".docx")
   ) {
-    throw new Error("DOCX extraction is coming in Phase 2 — convert to PDF for now.");
+    // Lazy-import so the server bundle doesn't pay the cost on every cold start.
+    const mammoth = await import("mammoth");
+    const { value } = await mammoth.extractRawText({ buffer });
+    return { text: value };
   }
   // Unknown type → try utf8.
   try {

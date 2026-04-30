@@ -46,6 +46,7 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.36.4",
     "lucide-react": "^0.460.0",
+    "mammoth": "^1.12.0",
     "next": "14.2.18",
     "openai": "^4.73.0",
     "pdf-parse": "^1.1.1",

@@ -25,8 +25,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <main style={{ flex: 1, overflowY: "auto" }}>{children}</main>
       <footer className="cq-footer">
         <div>© 2026 CHATQUEST · ALL RIGHTS RESERVED</div>
-        <div className="row" style={{ gap: 12 }}>
-          <span>PRIVATE BETA</span>
+        <div className="row" style={{ gap: 18 }}>
+          <Link href="/docs">DOCS</Link>
+          <Link href="/terms">TERMS</Link>
+          <Link href="/privacy">PRIVACY</Link>
+          <Link href="/aup">AUP</Link>
         </div>
       </footer>
     </div>
