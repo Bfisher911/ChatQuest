@@ -2,6 +2,8 @@ import * as React from "react";
 import Link from "next/link";
 import { Eyebrow, Btn, Icon, Chip } from "@/components/brutalist";
 
+export const revalidate = 3600;
+
 export default function ForCorporatePage() {
   return (
     <div className="cq-page" style={{ maxWidth: 880 }}>

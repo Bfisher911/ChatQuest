@@ -3,7 +3,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Cassette, Chip, Eyebrow, Btn, Icon } from "@/components/brutalist";
 
-export const dynamic = "force-dynamic";
+// ISR — pricing is read from the plans table; revalidate every 5 min so plan
+// edits propagate without forcing a server-side render on every request.
+export const revalidate = 300;
 
 // Reads via PostgREST (HTTPS) instead of direct Postgres so it works inside
 // any deploy target — including Netlify Lambdas where outbound :5432 may be

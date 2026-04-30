@@ -52,6 +52,8 @@ const SECTIONS = [
   },
 ];
 
+export const revalidate = 3600;
+
 export default function FeaturesPage() {
   return (
     <div className="cq-page" style={{ maxWidth: 1100 }}>

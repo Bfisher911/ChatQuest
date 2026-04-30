@@ -2,6 +2,9 @@ import * as React from "react";
 import Link from "next/link";
 import { Cassette, Chip, Eyebrow, Btn, Icon } from "@/components/brutalist";
 
+// ISR — revalidate hourly. Landing page is fully static modulo plan changes.
+export const revalidate = 3600;
+
 const FEATURES = [
   {
     idx: "00000010",

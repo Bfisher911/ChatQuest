@@ -16,7 +16,8 @@
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "analyze": "ANALYZE=true next build"
   },
   "engines": {
     "node": ">=20"
@@ -61,6 +62,7 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.15.10",
+    "@next/bundle-analyzer": "^16.2.4",
     "@sentry/nextjs": "^10.51.0",
     "@types/node": "^22.9.3",
     "@types/pdf-parse": "^1.1.4",
