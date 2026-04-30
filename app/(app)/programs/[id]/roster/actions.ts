@@ -84,26 +84,31 @@ export async function inviteLearner(formData: FormData) {
   });
   if (inviteErr) return { ok: false as const, error: inviteErr.message };
 
-  // Phase 1: log invite link to server console if no email provider configured.
+  // Send the branded invite email (Phase B).
   const url = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/accept-invite/${newToken}`;
-  if (!process.env.RESEND_API_KEY) {
-    console.log(`[invite] ${parsed.data.email} → ${url}`);
-  } else {
-    // Real send via Resend (POST); not awaited synchronously to keep things snappy.
-    void fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM ?? "ChatQuest <noreply@chatquest.local>",
-        to: [parsed.data.email],
-        subject: "You're invited to ChatQuest",
-        html: `<p>Click to join: <a href="${url}">${url}</a></p>`,
-      }),
-    }).catch((err) => console.error("[invite] resend failed:", err));
-  }
+  const { data: program2 } = await admin
+    .from("programs")
+    .select("title")
+    .eq("id", program.id)
+    .single();
+  const { data: org } = await admin
+    .from("organizations")
+    .select("name")
+    .eq("id", program.organization_id)
+    .single();
+  const { renderInviteEmail } = await import("@/lib/email/templates");
+  const { sendEmail } = await import("@/lib/email/client");
+  const tpl = renderInviteEmail({
+    inviteUrl: url,
+    inviterName: session.user.fullName ?? session.user.displayName ?? session.user.email,
+    organizationName: org?.name ?? "Your team",
+    programTitle: program2?.title ?? null,
+    role: parsed.data.role,
+  });
+  // Fire-and-forget — don't block the server action on the email POST.
+  void sendEmail({ to: parsed.data.email, subject: tpl.subject, html: tpl.html, text: tpl.text }).then((r) => {
+    if (!r.ok) console.error("[invite] email send failed:", r.error);
+  });
 
   revalidatePath(`/programs/${program.id}/roster`);
   return { ok: true as const, inviteUrl: url };

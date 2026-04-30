@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Cassette, CassetteStats, CassetteChips, Chip, Eyebrow, Icon, IconBtn, Btn } from "@/components/brutalist";
 import { bin } from "@/lib/utils/binary";
+import { OnboardingChecklist, type ChecklistItemSpec } from "@/components/dashboard/onboarding-checklist";
 
 type Supabase = ReturnType<typeof import("@/lib/supabase/server").createClient>;
 
@@ -60,6 +61,85 @@ export async function InstructorDashboard({
   const totalLearners = enrollmentCounts?.length ?? 0;
   const totalCertificates = 0; // computed in Phase 2 once cert awards are wired
 
+  // Build the first-run checklist (Phase B). Hidden once everything's checked.
+  const firstProgram = ownPrograms?.[0];
+  const firstProgramId = firstProgram?.id;
+  const { data: firstNode } = firstProgramId
+    ? await supabase
+        .from("path_nodes")
+        .select("id")
+        .eq("program_id", firstProgramId)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  const { data: firstKb } = firstProgramId
+    ? await supabase
+        .from("knowledge_files")
+        .select("id, status")
+        .in("collection_id", (
+          await supabase
+            .from("knowledge_collections")
+            .select("id")
+            .eq("program_id", firstProgramId)
+        ).data?.map((c) => c.id) ?? ["00000000-0000-0000-0000-000000000000"])
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  const { data: firstInvite } = firstProgramId
+    ? await supabase
+        .from("invites")
+        .select("id")
+        .eq("program_id", firstProgramId)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  const { data: firstSubmission } = firstProgramId
+    ? await supabase
+        .from("submissions")
+        .select("id")
+        .eq("program_id", firstProgramId)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  const checklist: ChecklistItemSpec[] = [
+    {
+      key: "create_program",
+      label: "Create your first program",
+      done: !!firstProgram,
+      href: "/programs/new",
+      cta: "NEW PROGRAM",
+    },
+    {
+      key: "add_node",
+      label: "Add a chatbot node to the program",
+      done: !!firstNode,
+      href: firstProgramId ? `/programs/${firstProgramId}/nodes/new` : "/programs",
+      cta: "ADD NODE",
+    },
+    {
+      key: "upload_kb",
+      label: "Upload a knowledge-base document",
+      done: !!firstKb,
+      href: firstProgramId ? `/programs/${firstProgramId}/kb` : "/programs",
+      cta: "UPLOAD",
+    },
+    {
+      key: "invite_learner",
+      label: "Invite a learner",
+      done: !!firstInvite,
+      href: firstProgramId ? `/programs/${firstProgramId}/roster` : "/programs",
+      cta: "INVITE",
+    },
+    {
+      key: "first_submission",
+      label: "Get your first submission",
+      done: !!firstSubmission,
+      href: firstProgramId ? `/programs/${firstProgramId}/gradebook` : "/programs",
+      cta: "OPEN GRADEBOOK",
+    },
+  ];
+
   const stats = [
     { k: "ACTIVE PROGRAMS", v: bin(ownPrograms?.length ?? 0, 8).slice(2) },
     { k: "LEARNERS", v: String(totalLearners) },
@@ -69,6 +149,7 @@ export async function InstructorDashboard({
 
   return (
     <div className="cq-page">
+      <OnboardingChecklist items={checklist} />
       <div className="cq-frame" style={{ padding: 28, marginBottom: 24, position: "relative" }}>
         <div className="cq-cassette__corner">
           <Icon name="lock" size={10} /> INSTRUCTOR
