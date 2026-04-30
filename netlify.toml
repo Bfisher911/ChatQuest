@@ -24,6 +24,18 @@
     Cache-Control = "no-cache, no-transform"
     X-Accel-Buffering = "no"
 
+# Security headers on every response (Phase A.5).
+# CSP is in report-only first; flip to enforced after a week of clean reports.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://*.supabase.co https://*.supabase.in blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.stripe.com wss://*.supabase.co https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com; frame-src 'self' https://js.stripe.com; object-src 'self' blob:; base-uri 'self'; form-action 'self';"
+
 # Generic function timeout. Server Actions, Drizzle queries against Supavisor,
 # and Supabase auth signUp can all exceed Netlify's 10s default — bump to 30s
 # globally so signup doesn't appear "stuck on Creating…".

@@ -25,7 +25,7 @@ export default async function LearnNodePage({
 
   const { data: node } = await supabase
     .from("path_nodes")
-    .select("id, type, title, points, due_at, chatbot_configs(bot_name, avatar_initials, learner_instructions, model, token_budget, attempts_allowed)")
+    .select("id, type, title, points, due_at")
     .eq("id", params.nodeId)
     .maybeSingle();
   if (!node) notFound();
@@ -38,15 +38,12 @@ export default async function LearnNodePage({
       </div>
     );
   }
-  const cfg = (node.chatbot_configs as unknown) as {
-    bot_name: string;
-    avatar_initials: string;
-    learner_instructions: string | null;
-    model: string;
-    token_budget: number;
-    attempts_allowed: number;
-  }[] | null;
-  const bot = cfg?.[0];
+  // Read from the learner-safe view that excludes system_prompt + completion_criteria.
+  const { data: bot } = await supabase
+    .from("chatbot_learner_configs")
+    .select("bot_name, avatar_initials, learner_instructions, model, token_budget, attempts_allowed")
+    .eq("node_id", params.nodeId)
+    .maybeSingle();
 
   // Ensure or resume an attempt.
   const start = await startConversation(params.programId, params.nodeId);

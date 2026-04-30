@@ -249,6 +249,33 @@ export async function uploadKbFile(formData: FormData) {
     return { ok: false as const, error: "Pick a file first." };
   }
 
+  // Phase A.6 — file upload validation.
+  const MAX_BYTES = 20 * 1024 * 1024; // 20 MiB hard cap (matches Storage policy).
+  if (file.size > MAX_BYTES) {
+    return { ok: false as const, error: "File is over 20 MB." };
+  }
+  const safeName = file.name;
+  if (safeName.includes(" ") || safeName.includes("..") || safeName.length > 255) {
+    return { ok: false as const, error: "Filename has unsafe characters." };
+  }
+  const ALLOWED_EXT = [".pdf", ".txt", ".md", ".markdown", ".csv", ".docx"];
+  if (!ALLOWED_EXT.some((ext) => safeName.toLowerCase().endsWith(ext))) {
+    return {
+      ok: false as const,
+      error: "Unsupported file type. Use PDF, TXT, MD, CSV, or DOCX.",
+    };
+  }
+  // MIME sniff: read the first 8 bytes and verify they match the claimed type.
+  const sniffBuf = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  const looksLikePdf = sniffBuf[0] === 0x25 && sniffBuf[1] === 0x50 && sniffBuf[2] === 0x44 && sniffBuf[3] === 0x46; // %PDF
+  const looksLikeZip = sniffBuf[0] === 0x50 && sniffBuf[1] === 0x4b; // PK (DOCX/zip)
+  if (safeName.toLowerCase().endsWith(".pdf") && !looksLikePdf) {
+    return { ok: false as const, error: "File extension is .pdf but the content isn't a PDF." };
+  }
+  if (safeName.toLowerCase().endsWith(".docx") && !looksLikeZip) {
+    return { ok: false as const, error: "File extension is .docx but the content isn't a DOCX." };
+  }
+
   const admin = createServiceRoleClient();
   // Make sure the bucket exists. Idempotent via getBucket.
   try {
@@ -260,7 +287,7 @@ export async function uploadKbFile(formData: FormData) {
     // Likely the bucket already exists; ignore.
   }
 
-  const objectKey = `${session.activeOrganizationId}/${parsed.data.programId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const objectKey = `${session.activeOrganizationId}/${parsed.data.programId}/${Date.now()}-${safeName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const arrayBuf = await file.arrayBuffer();
   const { error: uploadErr } = await admin.storage
     .from(KB_BUCKET)
