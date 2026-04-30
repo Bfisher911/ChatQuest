@@ -46,10 +46,10 @@ export async function saveGrade(formData: FormData) {
     .eq("id", parsed.data.gradeId);
   if (gradeErr) return { ok: false as const, error: gradeErr.message };
 
-  // Mirror grade status on the conversation.
+  // Mirror grade status on the conversation + auto-award certificates.
   const { data: grade } = await supabase
     .from("grades")
-    .select("conversation_id")
+    .select("conversation_id, learner_id, organization_id")
     .eq("id", parsed.data.gradeId)
     .single();
   if (grade) {
@@ -60,6 +60,15 @@ export async function saveGrade(formData: FormData) {
         ? "needs_revision"
         : "graded";
     await supabase.from("conversations").update({ status: convStatus }).eq("id", grade.conversation_id);
+
+    if (parsed.data.status === "graded") {
+      const { maybeAwardCertificates } = await import("@/lib/path/actions");
+      await maybeAwardCertificates(
+        parsed.data.programId,
+        grade.learner_id,
+        grade.organization_id,
+      );
+    }
   }
 
   revalidatePath(`/programs/${parsed.data.programId}/gradebook`);

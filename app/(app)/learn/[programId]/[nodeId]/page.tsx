@@ -1,9 +1,16 @@
 import * as React from "react";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { getActiveRole } from "@/lib/auth/active-role";
 import { startConversation } from "../../actions";
 import { ChatScreen } from "@/components/chat/chat-screen";
+import {
+  ContentNodeView,
+  PdfNodeView,
+  LinkNodeView,
+  MilestoneNodeView,
+  CertNodeView,
+} from "@/components/learn/non-bot-node";
 
 export const dynamic = "force-dynamic";
 
@@ -25,19 +32,126 @@ export default async function LearnNodePage({
 
   const { data: node } = await supabase
     .from("path_nodes")
-    .select("id, type, title, points, due_at")
+    .select("id, type, title, points, due_at, config")
     .eq("id", params.nodeId)
     .maybeSingle();
   if (!node) notFound();
-  if (node.type !== "bot") {
+
+  const { data: existingSubmission } = await supabase
+    .from("submissions")
+    .select("id")
+    .eq("program_id", params.programId)
+    .eq("node_id", params.nodeId)
+    .eq("learner_id", session.user.id)
+    .maybeSingle();
+  const alreadyComplete = !!existingSubmission;
+
+  // ─────────── Non-bot node type dispatch ───────────
+  if (node.type === "content") {
+    const cfg = (node.config as { body_html?: string; reading_minutes?: number | null }) ?? {};
+    return (
+      <ContentNodeView
+        programId={program.id}
+        nodeId={node.id}
+        title={node.title}
+        alreadyComplete={alreadyComplete}
+        bodyHtml={cfg.body_html ?? "<p><em>No content yet.</em></p>"}
+        readingMinutes={cfg.reading_minutes ?? null}
+      />
+    );
+  }
+  if (node.type === "pdf") {
+    const cfg = (node.config as { storage_path?: string; filename?: string }) ?? {};
+    let signedUrl: string | null = null;
+    if (cfg.storage_path) {
+      const admin = createServiceRoleClient();
+      const { data: signed } = await admin.storage
+        .from("node-files")
+        .createSignedUrl(cfg.storage_path, 60 * 60);
+      signedUrl = signed?.signedUrl ?? null;
+    }
+    return (
+      <PdfNodeView
+        programId={program.id}
+        nodeId={node.id}
+        title={node.title}
+        alreadyComplete={alreadyComplete}
+        signedUrl={signedUrl}
+        filename={cfg.filename ?? "document.pdf"}
+      />
+    );
+  }
+  if (node.type === "link") {
+    const cfg = (node.config as { url?: string; description?: string }) ?? {};
+    return (
+      <LinkNodeView
+        programId={program.id}
+        nodeId={node.id}
+        title={node.title}
+        alreadyComplete={alreadyComplete}
+        url={cfg.url ?? "#"}
+        description={cfg.description}
+      />
+    );
+  }
+  if (node.type === "milestone") {
+    const cfg = (node.config as { required_node_ids?: string[]; min_grade_percentage?: number }) ?? {};
+    const required = (cfg.required_node_ids ?? []).filter(Boolean);
+    let metCount = 0;
+    if (required.length > 0) {
+      const { data: grades } = await supabase
+        .from("grades")
+        .select("node_id, percentage, status")
+        .eq("program_id", program.id)
+        .eq("learner_id", session.user.id)
+        .in("node_id", required)
+        .in("status", ["graded", "completed"]);
+      const min = cfg.min_grade_percentage ?? 0;
+      metCount = (grades ?? []).filter((g) => Number(g.percentage ?? 0) >= min).length;
+    }
+    return (
+      <MilestoneNodeView
+        programId={program.id}
+        nodeId={node.id}
+        title={node.title}
+        alreadyComplete={alreadyComplete}
+        requiredCount={required.length}
+        metCount={metCount}
+      />
+    );
+  }
+  if (node.type === "cert") {
+    const { data: award } = await supabase
+      .from("certificate_awards")
+      .select("id, verification_code")
+      .eq("program_id", program.id)
+      .eq("learner_id", session.user.id)
+      .order("awarded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return (
+      <CertNodeView
+        programId={program.id}
+        nodeId={node.id}
+        title={node.title}
+        alreadyComplete={alreadyComplete}
+        hasAward={!!award}
+        pdfUrl={award ? `/api/certificates/${award.id}/pdf?v=${award.verification_code}` : null}
+        verificationCode={award?.verification_code ?? null}
+      />
+    );
+  }
+  if (node.type === "slides") {
     return (
       <div className="cq-page">
         <p style={{ fontFamily: "var(--font-mono)" }}>
-          {node.type.toUpperCase()} nodes are not yet implemented for learners — coming in Phase 2.
+          Slides node — full builder in Phase C.5. Mark complete on the
+          journey page for now.
         </p>
       </div>
     );
   }
+
   // Read from the learner-safe view that excludes system_prompt + completion_criteria.
   const { data: bot } = await supabase
     .from("chatbot_learner_configs")

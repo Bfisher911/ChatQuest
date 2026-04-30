@@ -8,7 +8,7 @@ import { cx } from "@/lib/utils/cx";
 
 const TABS = [
   { label: "Overview", suffix: "" },
-  { label: "Nodes", suffix: "/nodes" },
+  { label: "Builder", suffix: "/builder" },
   { label: "Knowledge", suffix: "/kb" },
   { label: "Roster", suffix: "/roster" },
   { label: "Gradebook", suffix: "/gradebook" },
