@@ -1097,3 +1097,63 @@ button {
 .cq-form-success::before {
   content: "■ OK · ";
 }
+
+/* skeleton shimmer (Phase G.1) */
+@keyframes cqShimmer {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+.cq-skeleton {
+  background-size: 40px 40px;
+}
+
+/* responsive (Phase G.4) */
+@media (max-width: 880px) {
+  .cq-header {
+    padding: 14px 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .cq-nav {
+    gap: 14px;
+  }
+  .cq-page {
+    padding: 18px;
+  }
+  .cq-hero {
+    margin: 16px;
+    padding: 36px 22px 22px;
+    min-height: auto;
+  }
+  .cq-pb {
+    grid-template-columns: 1fr;
+  }
+  .cq-pb__rail,
+  .cq-pb__inspector {
+    border: 0;
+    border-bottom: var(--hair) solid var(--ink);
+  }
+  .cq-chat {
+    grid-template-columns: 1fr;
+  }
+  .cq-chat__rail {
+    display: none;
+  }
+  .cq-grader {
+    width: 100vw;
+  }
+}
+
+@media (max-width: 600px) {
+  .cq-cassette__title {
+    font-size: 22px;
+    min-height: 0;
+  }
+  .cq-cassette {
+    padding: 20px;
+    min-height: 200px;
+  }
+  .cq-msg {
+    max-width: 90%;
+  }
+}
