@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: npm ci --no-audit
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npx vitest run --coverage
+      - run: npm run build
+        env:
+          # Build needs SOMETHING for these so Next can statically analyze
+          # routes — but the values are intentionally fake to avoid leaking
+          # production secrets in CI.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJfake' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'eyJfake' }}
+          SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'fake' }}
+          DEFAULT_CHAT_MODEL: claude-haiku-4-5
