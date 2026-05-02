@@ -1,0 +1,49 @@
+name: DB backup
+
+# Daily pg_dump of the production database to GitHub Actions artifacts.
+# Retention: 90 days. For longer retention, swap the artifact upload step
+# for an S3 / R2 / B2 upload step.
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # daily at 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install postgres client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Take pg_dump
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::warning::SUPABASE_DB_URL secret not set; skipping backup"
+            exit 0
+          fi
+          mkdir -p backups
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          out="backups/chatquest-${stamp}.sql.gz"
+          # --format=custom would be nicer but plain SQL is restorable from the
+          # CLI without the matching pg_restore version installed.
+          pg_dump --no-owner --no-privileges --schema=public --schema=auth \
+            "$DB_URL" | gzip -9 > "$out"
+          ls -la backups/
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatquest-db-backup-${{ github.run_id }}
+          path: backups/*.sql.gz
+          retention-days: 90
