@@ -15,7 +15,7 @@ export default async function NodeEditorPage({
   const supabase = createClient();
   const { data: node } = await supabase
     .from("path_nodes")
-    .select("id, type, title, points, program_id, chatbot_configs(system_prompt, learner_instructions, model, temperature, token_budget, max_tokens, attempts_allowed)")
+    .select("id, type, title, points, program_id, chatbot_configs(system_prompt, learner_instructions, model, temperature, token_budget, max_tokens, attempts_allowed, rubric_id)")
     .eq("id", params.nodeId)
     .maybeSingle();
   if (!node) notFound();
@@ -24,11 +24,16 @@ export default async function NodeEditorPage({
       <div className="cq-page">
         <Eyebrow>NODE</Eyebrow>
         <p style={{ fontFamily: "var(--font-mono)", marginTop: 12 }}>
-          {node.type.toUpperCase()} node editor lands in Phase 2 (visual path builder).
+          {node.type.toUpperCase()} nodes are configured directly in the visual builder.
         </p>
       </div>
     );
   }
+
+  const { data: rubrics } = await supabase
+    .from("rubrics")
+    .select("id, name, total_points")
+    .order("created_at", { ascending: false });
 
   return (
     <div className="cq-page" style={{ maxWidth: 880 }}>
@@ -41,8 +46,8 @@ export default async function NodeEditorPage({
       </h1>
       <div className="row" style={{ marginBottom: 16 }}>
         <Btn sm ghost asChild>
-          <Link href={`/programs/${node.program_id}`}>
-            <Icon name="arrow" style={{ transform: "rotate(180deg)" }} /> BACK TO PROGRAM
+          <Link href={`/programs/${node.program_id}/builder`}>
+            <Icon name="arrow" style={{ transform: "rotate(180deg)" }} /> BACK TO BUILDER
           </Link>
         </Btn>
         <Btn sm ghost asChild>
@@ -54,6 +59,7 @@ export default async function NodeEditorPage({
       <BotNodeForm
         programId={node.program_id}
         mode="edit"
+        rubrics={rubrics ?? []}
         node={{
           id: node.id,
           title: node.title,
@@ -67,6 +73,7 @@ export default async function NodeEditorPage({
                 token_budget: number;
                 max_tokens: number;
                 attempts_allowed: number;
+                rubric_id: string | null;
               }[]
             | null)?.[0] ?? null,
         }}

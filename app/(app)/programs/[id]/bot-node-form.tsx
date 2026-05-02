@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Btn, Icon } from "@/components/brutalist";
 import { createBotNode, updateBotNode } from "../actions";
 
 export interface BotNodeFormProps {
   programId: string;
   mode: "create" | "edit";
+  rubrics: { id: string; name: string; total_points: number | null }[];
   node?: {
     id: string;
     title: string;
@@ -19,11 +21,12 @@ export interface BotNodeFormProps {
       token_budget: number;
       max_tokens: number;
       attempts_allowed: number;
+      rubric_id: string | null;
     } | null;
   };
 }
 
-export function BotNodeForm({ programId, mode, node }: BotNodeFormProps) {
+export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps) {
   const cfg = node?.chatbot_configs;
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
@@ -129,6 +132,34 @@ export function BotNodeForm({ programId, mode, node }: BotNodeFormProps) {
           <label htmlFor="points">Points</label>
           <input id="points" name="points" type="number" min={0}
             defaultValue={node?.points ?? 25} className="cq-input" />
+        </div>
+      </div>
+
+      <div className="cq-field">
+        <label htmlFor="rubricId">Rubric (for AI grading)</label>
+        <select
+          id="rubricId"
+          name="rubricId"
+          defaultValue={cfg?.rubric_id ?? ""}
+          className="cq-select"
+        >
+          <option value="">— None —</option>
+          {rubrics.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name} ({r.total_points ?? 0} pts)
+            </option>
+          ))}
+        </select>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+          {rubrics.length === 0 ? (
+            <>
+              No rubrics yet. <Link href="/rubrics/new" style={{ textDecoration: "underline" }}>Create one</Link> for AI-suggested scores.
+            </>
+          ) : (
+            <>
+              Manage at <Link href="/rubrics" style={{ textDecoration: "underline" }}>/rubrics</Link>
+            </>
+          )}
         </div>
       </div>
 

@@ -120,6 +120,7 @@ const createBotNodeSchema = z.object({
   maxTokens: z.coerce.number().int().min(64).default(1024),
   attemptsAllowed: z.coerce.number().int().min(1).default(2),
   points: z.coerce.number().int().min(0).default(25),
+  rubricId: z.string().uuid().optional().nullable(),
 });
 
 export async function createBotNode(formData: FormData) {
@@ -136,6 +137,7 @@ export async function createBotNode(formData: FormData) {
     maxTokens: formData.get("maxTokens") ?? undefined,
     attemptsAllowed: formData.get("attemptsAllowed") ?? undefined,
     points: formData.get("points") ?? undefined,
+    rubricId: formData.get("rubricId") || null,
   });
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
@@ -178,6 +180,7 @@ export async function createBotNode(formData: FormData) {
     token_budget: parsed.data.tokenBudget,
     max_tokens: parsed.data.maxTokens,
     attempts_allowed: parsed.data.attemptsAllowed,
+    rubric_id: parsed.data.rubricId || null,
   });
   if (cfgErr) return { ok: false as const, error: cfgErr.message };
 
@@ -203,6 +206,7 @@ export async function updateBotNode(formData: FormData) {
     maxTokens: formData.get("maxTokens") ?? undefined,
     attemptsAllowed: formData.get("attemptsAllowed") ?? undefined,
     points: formData.get("points") ?? undefined,
+    rubricId: formData.get("rubricId") || null,
   });
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const supabase = createClient();
@@ -223,6 +227,7 @@ export async function updateBotNode(formData: FormData) {
       token_budget: parsed.data.tokenBudget,
       max_tokens: parsed.data.maxTokens,
       attempts_allowed: parsed.data.attemptsAllowed,
+      rubric_id: parsed.data.rubricId || null,
     })
     .eq("node_id", parsed.data.nodeId);
   if (cfgErr) return { ok: false as const, error: cfgErr.message };

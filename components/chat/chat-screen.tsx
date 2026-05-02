@@ -136,8 +136,14 @@ export function ChatScreen(props: ChatScreenProps) {
       return;
     }
     setSubmitted(true);
-    toast.success("Submitted for grading.");
-    router.refresh();
+    toast.success("Submitted! Returning to your journey…");
+    // Brief pause so the toast registers, then bounce back to the journey view
+    // where the path-progress engine will pick the next available node + show
+    // the "NEXT STEP" banner.
+    setTimeout(() => {
+      router.push(`/learn/${props.programId}`);
+      router.refresh();
+    }, 800);
   }
 
   const tokenPct = Math.min(100, Math.round((tokensUsed / Math.max(1, props.bot?.tokenBudget ?? 1)) * 100));
