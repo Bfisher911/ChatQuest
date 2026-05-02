@@ -142,13 +142,16 @@ export default async function LearnNodePage({
     );
   }
   if (node.type === "slides") {
+    const cfg = (node.config as { slides?: { title: string; body: string; image_url?: string }[] }) ?? {};
+    const { SlidesViewer } = await import("@/components/learn/slides-viewer");
     return (
-      <div className="cq-page">
-        <p style={{ fontFamily: "var(--font-mono)" }}>
-          Slides node — full builder in Phase C.5. Mark complete on the
-          journey page for now.
-        </p>
-      </div>
+      <SlidesViewer
+        programId={program.id}
+        nodeId={node.id}
+        title={node.title}
+        slides={cfg.slides ?? []}
+        alreadyComplete={alreadyComplete}
+      />
     );
   }
 

@@ -4,28 +4,36 @@ import * as React from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExtension from "@tiptap/extension-link";
-import { Btn, Icon } from "@/components/brutalist";
+import ImageExtension from "@tiptap/extension-image";
 import { cx } from "@/lib/utils/cx";
+import { uploadNodeFile } from "@/lib/path/file-actions";
+import { toast } from "sonner";
 
 /**
  * Brutalist rich-text editor backed by TipTap.
  * Hands the parent the rendered HTML on every change.
+ *
+ * Pass `imageUploadContext` to expose an "IMG" toolbar button that uploads
+ * the selected file to the node-files bucket and inserts the signed URL.
  */
 export function RichTextEditor({
   value,
   onChange,
   placeholder = "Write something…",
   minHeight = 220,
+  imageUploadContext,
 }: {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
   minHeight?: number;
+  imageUploadContext?: { programId: string; nodeId: string };
 }) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [2, 3] } }),
       LinkExtension.configure({ openOnClick: false, autolink: true }),
+      ImageExtension.configure({ inline: false, allowBase64: false }),
     ],
     content: value || "",
     editorProps: {
@@ -38,7 +46,7 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
-  // Keep editor in sync when value changes externally (e.g. node switch).
+  // Keep editor in sync when value changes externally (e.g. switching nodes).
   React.useEffect(() => {
     if (!editor) return;
     if (editor.getHTML() !== (value || "")) {
@@ -66,7 +74,7 @@ export function RichTextEditor({
 
   return (
     <div style={{ border: "var(--hair) solid var(--ink)" }}>
-      <EditorToolbar editor={editor} />
+      <EditorToolbar editor={editor} imageUploadContext={imageUploadContext} />
       <EditorContent
         editor={editor}
         placeholder={placeholder}
@@ -76,7 +84,34 @@ export function RichTextEditor({
   );
 }
 
-function EditorToolbar({ editor }: { editor: Editor }) {
+function EditorToolbar({
+  editor,
+  imageUploadContext,
+}: {
+  editor: Editor;
+  imageUploadContext?: { programId: string; nodeId: string };
+}) {
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  async function onPickImage(file: File) {
+    if (!imageUploadContext) return;
+    const fd = new FormData();
+    fd.set("programId", imageUploadContext.programId);
+    fd.set("nodeId", imageUploadContext.nodeId);
+    fd.set("file", file);
+    const res = await uploadNodeFile(fd);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    if (!res.signedUrl) {
+      toast.error("Upload succeeded but no signed URL returned.");
+      return;
+    }
+    editor.chain().focus().setImage({ src: res.signedUrl, alt: file.name }).run();
+    toast.success("Image inserted.");
+  }
+
   const ToolBtn = ({
     isActive,
     onClick,
@@ -109,14 +144,7 @@ function EditorToolbar({ editor }: { editor: Editor }) {
   );
 
   return (
-    <div
-      className="row"
-      style={{
-        gap: 4,
-        padding: 8,
-        flexWrap: "wrap",
-      }}
-    >
+    <div className="row" style={{ gap: 4, padding: 8, flexWrap: "wrap" }}>
       <ToolBtn title="Bold" isActive={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>B</ToolBtn>
       <ToolBtn title="Italic" isActive={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
         <em>I</em>
@@ -143,6 +171,22 @@ function EditorToolbar({ editor }: { editor: Editor }) {
       >
         ↗
       </ToolBtn>
+      {imageUploadContext ? (
+        <>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.currentTarget.files?.[0];
+              if (f) void onPickImage(f);
+              if (fileRef.current) fileRef.current.value = "";
+            }}
+          />
+          <ToolBtn title="Insert image" onClick={() => fileRef.current?.click()}>IMG</ToolBtn>
+        </>
+      ) : null}
       <span style={{ flex: 1 }} />
       <ToolBtn title="Undo" onClick={() => editor.chain().focus().undo().run()}>↶</ToolBtn>
       <ToolBtn title="Redo" onClick={() => editor.chain().focus().redo().run()}>↷</ToolBtn>

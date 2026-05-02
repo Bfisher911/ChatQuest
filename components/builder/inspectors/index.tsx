@@ -263,7 +263,12 @@ export function ContentInspector(props: InspectorProps) {
       </div>
       <div className="cq-field">
         <label>Body</label>
-        <RichTextEditor value={bodyHtml} onChange={setBodyHtml} minHeight={260} />
+        <RichTextEditor
+          value={bodyHtml}
+          onChange={setBodyHtml}
+          minHeight={260}
+          imageUploadContext={{ programId: props.programId, nodeId: props.node.id }}
+        />
       </div>
     </InspectorShell>
   );
