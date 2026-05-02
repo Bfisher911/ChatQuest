@@ -30,7 +30,7 @@ export function emailLayout({ preheader, bodyHtml, ctaText, ctaHref, footerNote 
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChatQuest</title>
+<title>Chatrail</title>
 </head>
 <body style="margin:0; padding:0; background:#f4f4f4; font-family:${SANS}; color:#000;">
 <span style="display:none; visibility:hidden; opacity:0; height:0; width:0; overflow:hidden;">${escape(preheader)}</span>
@@ -41,7 +41,7 @@ export function emailLayout({ preheader, bodyHtml, ctaText, ctaHref, footerNote 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
           <tr>
             <td>
-              <span style="display:inline-block; padding:4px 8px 3px; border:2px solid #000; font-family:${MONO}; font-size:14px; letter-spacing:0.02em; font-weight:700;">CHAT</span><span style="display:inline-block; padding:4px 8px 3px; background:#000; color:#fff; font-family:${MONO}; font-size:14px; font-weight:700;">QUEST</span>
+              <span style="display:inline-block; padding:4px 8px 3px; border:2px solid #000; font-family:${MONO}; font-size:14px; letter-spacing:0.02em; font-weight:700;">CHAT</span><span style="display:inline-block; padding:4px 8px 3px; background:#000; color:#fff; font-family:${MONO}; font-size:14px; font-weight:700;">RAIL</span>
             </td>
             <td align="right" style="font-family:${MONO}; font-size:11px; letter-spacing:0.05em; text-transform:uppercase;">
               CHATBOT-NATIVE LMS
@@ -54,7 +54,7 @@ export function emailLayout({ preheader, bodyHtml, ctaText, ctaHref, footerNote 
         ${cta}
       </td></tr>
       <tr><td style="padding:18px 28px; border-top:2px solid #000; font-family:${MONO}; font-size:11px; color:#6b6b6b; letter-spacing:0.04em; text-transform:uppercase;">
-        ${footerNote ? escape(footerNote) : "© 2026 CHATQUEST · BRUTALIST B&amp;W LMS"}
+        ${footerNote ? escape(footerNote) : "© 2026 CHATRAIL · BRUTALIST B&amp;W LMS"}
       </td></tr>
     </table>
   </td></tr>

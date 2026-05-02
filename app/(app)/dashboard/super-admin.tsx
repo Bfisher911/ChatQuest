@@ -33,7 +33,7 @@ export async function SuperAdminDashboard({
   const stats = [
     { k: "ORGANIZATIONS", v: String(orgCount ?? 0) },
     { k: "USERS", v: fmt(userCount ?? 0) },
-    { k: "PROGRAMS", v: String(programCount ?? 0) },
+    { k: "CHATRAILS", v: String(programCount ?? 0) },
     { k: "ACTIVE SUBS", v: String(subCount ?? 0) },
   ];
 

@@ -1,4 +1,4 @@
-# ChatQuest — Changelog
+# Chatrail — Changelog
 
 This changelog tracks shipped phases. Newest first.
 

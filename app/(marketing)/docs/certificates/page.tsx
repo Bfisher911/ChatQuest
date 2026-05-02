@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Eyebrow, Btn } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Certificates — ChatQuest docs",
+  title: "Certificates — Chatrail docs",
   description: "Auto-issuance, verification codes, and the public verify page.",
 };
 export const revalidate = 3600;
@@ -17,7 +17,7 @@ export default function CertsDocs() {
       </h1>
 
       <p style={{ fontSize: 16, lineHeight: 1.55, marginBottom: 16 }}>
-        ChatQuest issues PDF certificates automatically when a learner meets
+        Chatrail issues PDF certificates automatically when a learner meets
         the configured criteria. Every cert has a unique verification code
         anyone can resolve at <code>/verify-cert/[code]</code> without signing in.
       </p>

@@ -19,22 +19,24 @@ export interface HeaderProps {
 const ROLE_NAVS: Record<UserRole, { label: string; href: string }[]> = {
   instructor: [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Programs", href: "/programs" },
+    { label: "Chatrails", href: "/programs" },
+    { label: "Seats", href: "/seats" },
     { label: "Knowledge", href: "/kb" },
     { label: "Rubrics", href: "/rubrics" },
   ],
   ta: [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Programs", href: "/programs" },
+    { label: "Chatrails", href: "/programs" },
   ],
   learner: [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "My Programs", href: "/learn" },
+    { label: "My Chatrails", href: "/learn" },
     { label: "Certificates", href: "/learn/certificates" },
   ],
   org_admin: [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Programs", href: "/programs" },
+    { label: "Chatrails", href: "/programs" },
+    { label: "Seats", href: "/seats" },
     { label: "Members", href: "/org/members" },
     { label: "Billing", href: "/org/billing" },
   ],
@@ -73,7 +75,7 @@ export function Header({
       <div className="row" style={{ gap: 28 }}>
         <Link className="cq-logo" href="/dashboard">
           <span className="cq-logo-mark">CHAT</span>
-          <span className="cq-logo-quest">QUEST</span>
+          <span className="cq-logo-quest">RAIL</span>
         </Link>
         <nav className="cq-nav" style={{ marginLeft: 16 }}>
           {links.map((l) => {

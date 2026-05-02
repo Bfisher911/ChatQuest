@@ -1,4 +1,4 @@
-# Netlify deployment config for ChatQuest (Next.js 14 App Router).
+# Netlify deployment config for Chatrail (Next.js 14 App Router).
 # The `@netlify/plugin-nextjs` plugin handles SSR, ISR, route handlers,
 # middleware, and the App Router automatically — no manual function wiring.
 

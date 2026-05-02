@@ -95,7 +95,7 @@ export async function LearnerDashboard({
       </div>
 
       <div className="row-between" style={{ marginBottom: 16 }}>
-        <Eyebrow>MY PROGRAMS</Eyebrow>
+        <Eyebrow>MY CHATRAILS</Eyebrow>
         <div className="cq-mono" style={{ fontSize: 13, color: "var(--muted)" }}>
           {programs.length} TOTAL
         </div>
@@ -132,7 +132,7 @@ export async function LearnerDashboard({
         </div>
       ) : (
         <div className="cq-frame" style={{ padding: 48, textAlign: "center" }}>
-          <Eyebrow>NO PROGRAMS YET</Eyebrow>
+          <Eyebrow>NO CHATRAILS YET</Eyebrow>
           <div className="cq-title-m" style={{ marginTop: 12, marginBottom: 24 }}>
             ASK YOUR INSTRUCTOR FOR AN INVITE.
           </div>

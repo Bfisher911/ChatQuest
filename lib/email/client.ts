@@ -24,7 +24,7 @@ export interface SendEmailResult {
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "ChatQuest <noreply@chatquest.local>";
+  const from = process.env.EMAIL_FROM ?? "Chatrail <noreply@chatquest.local>";
 
   if (!apiKey) {
     console.log(

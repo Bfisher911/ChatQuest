@@ -1,4 +1,4 @@
-# ChatQuest
+# Chatrail
 
 Chatbot-native LMS for serious learning — Phase 1 MVP.
 

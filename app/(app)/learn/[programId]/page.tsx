@@ -45,7 +45,7 @@ export default async function LearnerJourney({ params }: { params: { programId: 
   return (
     <div className="cq-page">
       <Frame style={{ padding: 28, marginBottom: 24 }}>
-        <Eyebrow>PROGRAM · {bin(1, 8)}</Eyebrow>
+        <Eyebrow>CHATRAIL · {bin(1, 8)}</Eyebrow>
         <h1 className="cq-title-l" style={{ marginTop: 12, marginBottom: 8 }}>
           {program.title.toUpperCase()}
         </h1>

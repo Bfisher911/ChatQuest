@@ -48,7 +48,7 @@ export async function OrgAdminDashboard({
     { k: "PLAN", v: (org?.plan_code ?? "FREE").toUpperCase() },
     { k: "INSTR SEATS", v: `${instructorCount}/${instrSeats}` },
     { k: "LEARNER SEATS", v: `${learnerCount}/${lrnSeats}` },
-    { k: "PROGRAMS", v: String(programs?.length ?? 0) },
+    { k: "CHATRAILS", v: String(programs?.length ?? 0) },
   ];
 
   return (
@@ -92,7 +92,7 @@ export async function OrgAdminDashboard({
         </div>
       </Frame>
 
-      <Eyebrow>PROGRAMS</Eyebrow>
+      <Eyebrow>CHATRAILS</Eyebrow>
       <div className="cq-grid cq-grid--3" style={{ marginTop: 16, paddingBottom: 28 }}>
         {(programs ?? []).map((p, i) => (
           <Cassette

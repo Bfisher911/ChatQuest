@@ -5,7 +5,7 @@ import path from "node:path";
 import { Eyebrow, Btn } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Changelog — ChatQuest docs",
+  title: "Changelog — Chatrail docs",
   description: "What's shipped, by date.",
 };
 export const revalidate = 3600;

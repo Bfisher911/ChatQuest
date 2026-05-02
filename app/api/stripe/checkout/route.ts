@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
             unit_amount: program.learner_price_cents,
             product_data: {
               name: program.title,
-              description: `ChatQuest enrollment — ${program.title}`,
+              description: `Chatrail enrollment — ${program.title}`,
             },
           },
         },

@@ -12,9 +12,9 @@ export default async function NewProgramPage() {
   if (!["instructor", "org_admin", "super_admin"].includes(session.activeRole)) redirect("/dashboard");
   return (
     <div className="cq-page" style={{ maxWidth: 720 }}>
-      <Eyebrow>NEW PROGRAM</Eyebrow>
+      <Eyebrow>NEW CHATRAIL</Eyebrow>
       <h1 className="cq-title-l" style={{ marginTop: 12, marginBottom: 24 }}>
-        CREATE A PROGRAM.
+        CREATE A CHATRAIL.
       </h1>
       <NewProgramForm />
     </div>

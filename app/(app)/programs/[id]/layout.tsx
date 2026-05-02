@@ -24,7 +24,7 @@ export default async function ProgramLayout({
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
       <div style={{ padding: "20px 28px", borderBottom: "var(--hair) solid var(--ink)" }}>
         <div className="cq-pb__crumbs">
-          <Link href="/programs" style={{ color: "var(--muted)" }}>PROGRAMS</Link>
+          <Link href="/programs" style={{ color: "var(--muted)" }}>CHATRAILS</Link>
           <span className="sep">/</span>
           <span>{program.title.toUpperCase()}</span>
         </div>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Cassette, Eyebrow } from "@/components/brutalist";
 
 export const metadata = {
-  title: "ChatQuest — Docs",
+  title: "Chatrail — Docs",
   description:
     "Quickstart guides for instructors and learners, knowledge-base concepts, rubric authoring, and certificate verification.",
 };
@@ -65,8 +65,8 @@ export default function DocsHome() {
       </div>
       <p style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", marginTop: 32 }}>
         Found something inaccurate? Open an issue at{" "}
-        <Link href="https://github.com/Bfisher911/ChatQuest" target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>
-          github.com/Bfisher911/ChatQuest
+        <Link href="https://github.com/Bfisher911/Chatrail" target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>
+          github.com/Bfisher911/Chatrail
         </Link>
         .
       </p>

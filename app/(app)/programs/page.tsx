@@ -19,10 +19,10 @@ export default async function ProgramsListPage() {
   return (
     <div className="cq-page">
       <div className="row-between" style={{ marginBottom: 16 }}>
-        <Eyebrow>PROGRAMS</Eyebrow>
+        <Eyebrow>CHATRAILS</Eyebrow>
         <Btn sm asChild>
           <Link href="/programs/new">
-            <Icon name="plus" /> NEW PROGRAM
+            <Icon name="plus" /> NEW CHATRAIL
           </Link>
         </Btn>
       </div>
@@ -43,13 +43,13 @@ export default async function ProgramsListPage() {
         ))}
         {(!programs || programs.length === 0) && (
           <div className="cq-frame" style={{ padding: 32, gridColumn: "1 / -1", textAlign: "center" }}>
-            <div className="cq-title-m">NO PROGRAMS YET</div>
+            <div className="cq-title-m">NO CHATRAILS YET</div>
             <p style={{ fontFamily: "var(--font-mono)", margin: "12px 0 20px" }}>
               Create one to start building chatbot-native curricula.
             </p>
             <Btn asChild>
               <Link href="/programs/new">
-                <Icon name="plus" /> CREATE PROGRAM
+                <Icon name="plus" /> CREATE CHATRAIL
               </Link>
             </Btn>
           </div>

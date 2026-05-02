@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Eyebrow, Btn } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Knowledge base + RAG — ChatQuest docs",
+  title: "Knowledge base + RAG — Chatrail docs",
   description: "How uploads become embeddings the chatbot can cite.",
 };
 export const revalidate = 3600;

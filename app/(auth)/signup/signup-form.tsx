@@ -4,11 +4,13 @@ import * as React from "react";
 import { Btn, Icon } from "@/components/brutalist";
 import { signUp } from "../actions";
 
+// Two roles in the public signup: Creator and Learner.
+// "Creator" maps to the existing instructor role on the backend (which auto-
+// creates a workspace organization). org_admin / ta / super_admin are still
+// in the schema for future enterprise + RBAC needs but aren't surfaced here.
 const INTENTS = [
-  { value: "instructor", label: "Instructor / Trainer / SME" },
-  { value: "org_admin", label: "Organization Admin" },
-  { value: "learner", label: "Learner / Trainee" },
-  { value: "ta", label: "TA / Co-Instructor" },
+  { value: "instructor", label: "Creator (build Chatrails, invite learners)" },
+  { value: "learner", label: "Learner (you've been invited or have a code)" },
 ];
 
 export function SignupForm({ inviteToken, intent }: { inviteToken?: string; intent?: string }) {
@@ -74,12 +76,15 @@ export function SignupForm({ inviteToken, intent }: { inviteToken?: string; inte
         <label htmlFor="password">Password</label>
         <input id="password" name="password" type="password" required minLength={8} className="cq-input" autoComplete="new-password" />
       </div>
-      {(selectedIntent === "instructor" || selectedIntent === "org_admin") && !inviteToken ? (
+      {selectedIntent === "instructor" && !inviteToken ? (
         <div className="cq-field">
-          <label htmlFor="organizationName">
-            {selectedIntent === "org_admin" ? "Organization name" : "Workspace name (optional)"}
-          </label>
-          <input id="organizationName" name="organizationName" className="cq-input" />
+          <label htmlFor="organizationName">Workspace name (optional)</label>
+          <input
+            id="organizationName"
+            name="organizationName"
+            className="cq-input"
+            placeholder="e.g. your school, company, or your name"
+          />
         </div>
       ) : null}
       <Btn type="submit" disabled={pending}>

@@ -10,11 +10,11 @@ export interface InviteEmailInput {
 
 export function renderInviteEmail(input: InviteEmailInput): { subject: string; html: string; text: string } {
   const subject = input.programTitle
-    ? `Invite to ${input.programTitle} on ChatQuest`
-    : `Invite to ${input.organizationName} on ChatQuest`;
+    ? `Invite to ${input.programTitle} on Chatrail`
+    : `Invite to ${input.organizationName} on Chatrail`;
 
   const html = emailLayout({
-    preheader: `${input.inviterName} invited you to join ${input.organizationName} on ChatQuest.`,
+    preheader: `${input.inviterName} invited you to join ${input.organizationName} on Chatrail.`,
     bodyHtml: `
       <p style="font-family:${EMAIL_FONT_MONO}; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#6b6b6b; margin:0 0 8px;">
         ■ INVITATION · ${input.role.toUpperCase()}
@@ -24,7 +24,7 @@ export function renderInviteEmail(input: InviteEmailInput): { subject: string; h
       </h1>
       <p style="font-family:${EMAIL_FONT_SANS}; font-size:15px; line-height:1.5; margin:0 0 12px;">
         <strong>${escape(input.inviterName)}</strong> invited you to join
-        <strong>${escape(input.organizationName)}</strong> on ChatQuest${
+        <strong>${escape(input.organizationName)}</strong> on Chatrail${
           input.programTitle ? ` and the program <strong>${escape(input.programTitle)}</strong>` : ""
         }.
       </p>
@@ -38,7 +38,7 @@ export function renderInviteEmail(input: InviteEmailInput): { subject: string; h
     footerNote: `If you weren’t expecting this invite, ignore the email.`,
   });
 
-  const text = `${input.inviterName} invited you to join ${input.organizationName} on ChatQuest${
+  const text = `${input.inviterName} invited you to join ${input.organizationName} on Chatrail${
     input.programTitle ? ` and the program "${input.programTitle}"` : ""
   }.\n\nAccept: ${input.inviteUrl}\n\nThe link expires in 14 days.`;
 

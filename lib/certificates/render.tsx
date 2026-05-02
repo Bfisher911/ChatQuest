@@ -139,7 +139,7 @@ function CertificateDoc(input: CertPdfInput) {
           <View style={styles.topBar}>
             <View style={{ flexDirection: "row" }}>
               <Text style={styles.logoMark}>CHAT</Text>
-              <Text style={styles.logoQuest}>QUEST</Text>
+              <Text style={styles.logoQuest}>RAIL</Text>
             </View>
             <Text style={styles.topMeta}>
               ISSUED · {date.toUpperCase()}{"\n"}
@@ -155,7 +155,7 @@ function CertificateDoc(input: CertPdfInput) {
           <Text style={styles.programLine}>
             For successfully completing the program{" "}
             <Text style={{ fontFamily: "Helvetica-Bold" }}>{input.programTitle}</Text>{" "}
-            on the ChatQuest platform.
+            on the Chatrail platform.
           </Text>
           {input.bodyText ? (
             <Text style={[styles.programLine, { marginTop: 12 }]}>{input.bodyText}</Text>

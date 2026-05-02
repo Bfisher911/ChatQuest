@@ -6,7 +6,7 @@ export default function ProgramsLoading() {
   return (
     <div className="cq-page">
       <div style={{ marginBottom: 16 }}>
-        <Eyebrow>LOADING PROGRAMS</Eyebrow>
+        <Eyebrow>LOADING CHATRAILS</Eyebrow>
       </div>
       <div className="cq-grid cq-grid--3">
         {Array.from({ length: 6 }).map((_, i) => (

@@ -2,8 +2,8 @@ import * as React from "react";
 import { Eyebrow } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Terms of Service — ChatQuest",
-  description: "ChatQuest terms of service.",
+  title: "Terms of Service — Chatrail",
+  description: "Chatrail terms of service.",
 };
 export const revalidate = 86400;
 
@@ -28,7 +28,7 @@ export default function TermsPage() {
       </p>
 
       <Section title="1. Who's who">
-        ChatQuest is operated by [LEGAL ENTITY]. By using the platform you
+        Chatrail is operated by [LEGAL ENTITY]. By using the platform you
         agree to these terms. If you sign up on behalf of an organization,
         you're agreeing on its behalf and confirming you have authority to
         do so.
@@ -47,7 +47,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="4. AI outputs">
-        ChatQuest passes your inputs to third-party LLM providers (Anthropic,
+        Chatrail passes your inputs to third-party LLM providers (Anthropic,
         OpenAI, Google) under contracts that prohibit provider training on
         your content. Outputs are generated probabilistically and may be
         incorrect; you're responsible for verifying anything you rely on.
@@ -55,7 +55,7 @@ export default function TermsPage() {
 
       <Section title="5. Your content">
         You keep ownership of everything you upload, write, or generate. You
-        grant ChatQuest a license to host, process, and display it as needed
+        grant Chatrail a license to host, process, and display it as needed
         to operate the service. Instructors retain rights over course
         materials they author; learners retain rights over their submissions.
       </Section>

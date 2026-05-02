@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Eyebrow, Btn, Icon } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Instructor quickstart — ChatQuest docs",
+  title: "Instructor quickstart — Chatrail docs",
   description: "From zero to first chatbot node in 10 minutes.",
 };
 
@@ -19,7 +19,7 @@ export default function InstructorQuickstart() {
 
       <Step n={1} title="Sign up">
         Visit <Link href="/signup">/signup</Link>, pick &quot;Instructor / Trainer / SME&quot;, fill
-        in your name + email + password. ChatQuest auto-creates a workspace
+        in your name + email + password. Chatrail auto-creates a workspace
         organization for you.
       </Step>
 

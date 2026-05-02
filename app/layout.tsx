@@ -3,9 +3,9 @@ import "../styles/globals.css";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "ChatQuest — Chatbot-native LMS",
+  title: "Chatrail — Build chatbot-native learning paths",
   description:
-    "Build AI tutors. Wire them into a visual learning path. Grade transcripts with rubrics. Issue certificates.",
+    "Build AI tutors. Wire them into visual learning paths called Chatrails. Provision seats. Grade transcripts. Issue certificates.",
 };
 
 export default function RootLayout({

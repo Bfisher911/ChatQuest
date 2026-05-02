@@ -20,7 +20,7 @@ In scope:
 - The deployed production site at <https://chattrail.netlify.app>
   (and any future custom-domain alias).
 - The Supabase project at `qucizmsdoswunfsnqjam`.
-- The `Bfisher911/ChatQuest` repository.
+- The `Bfisher911/Chatrail` repository.
 
 Out of scope:
 

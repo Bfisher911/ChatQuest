@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Eyebrow, Btn, Icon } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Learner quickstart — ChatQuest docs",
+  title: "Learner quickstart — Chatrail docs",
   description: "What to expect from a chatbot-based course.",
 };
 export const revalidate = 3600;
@@ -17,7 +17,7 @@ export default function LearnerQuickstart() {
       </h1>
 
       <p style={{ fontSize: 16, lineHeight: 1.55, marginBottom: 16 }}>
-        ChatQuest courses replace quizzes with chatbot conversations. You read,
+        Chatrail courses replace quizzes with chatbot conversations. You read,
         watch, or react to content; you talk to an AI tutor about it; the
         instructor reads your transcript and grades you against a rubric. No
         memorize-and-bubble. Show how you think.

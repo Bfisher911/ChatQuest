@@ -63,7 +63,7 @@ export async function GET(
   const pdfBuf = await renderCertificatePdf({
     certificateTitle: certPick?.title ?? "Certificate of Completion",
     programTitle: programPick?.title ?? "Program",
-    organizationName: orgPick?.name ?? "ChatQuest",
+    organizationName: orgPick?.name ?? "Chatrail",
     recipientName:
       learnerPick?.full_name ?? learnerPick?.display_name ?? learnerPick?.email ?? "Learner",
     signerName: templatePick?.signer_name ?? null,

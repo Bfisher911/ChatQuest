@@ -4,7 +4,7 @@ import { bin } from "@/lib/utils/binary";
 export function Footer({ index = 1, total = 1 }: { index?: number; total?: number }) {
   return (
     <footer className="cq-footer">
-      <div>© 2026 CHATQUEST · ALL RIGHTS RESERVED</div>
+      <div>© 2026 CHATRAIL · ALL RIGHTS RESERVED</div>
       <div className="row" style={{ gap: 12 }}>
         <span style={{ fontSize: 11 }}>SCREEN</span>
         <div className="cq-footer-counter">

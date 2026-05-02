@@ -2,8 +2,8 @@ import * as React from "react";
 import { Eyebrow } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Privacy Policy — ChatQuest",
-  description: "How ChatQuest collects, uses, and protects your data.",
+  title: "Privacy Policy — Chatrail",
+  description: "How Chatrail collects, uses, and protects your data.",
 };
 export const revalidate = 86400;
 
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="Children + students">
-        ChatQuest is FERPA-conscious for educational customers. Instructors
+        Chatrail is FERPA-conscious for educational customers. Instructors
         and orgs configure their own consent flows; we operate as a
         &quot;school official&quot; under FERPA when an EDU customer requires it
         via a separate Data Processing Addendum.

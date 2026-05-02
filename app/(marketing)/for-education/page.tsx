@@ -12,7 +12,7 @@ export default function ForEducationPage() {
         REPLACE THE QUIZ. KEEP THE RIGOR.
       </h1>
       <p style={{ fontFamily: "var(--font-mono)", fontSize: 16, lineHeight: 1.5 }}>
-        ChatQuest is built for instructors who want to assess thinking, not recall. Set up a chatbot scenario, give learners
+        Chatrail is built for instructors who want to assess thinking, not recall. Set up a chatbot scenario, give learners
         the rubric you&apos;ll grade them against, and read the transcript instead of a multiple-choice form.
       </p>
       <div className="row" style={{ gap: 8, marginTop: 16, flexWrap: "wrap" }}>

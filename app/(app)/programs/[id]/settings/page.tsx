@@ -19,7 +19,7 @@ export default async function ProgramSettings({ params }: { params: { id: string
     <div className="cq-page" style={{ maxWidth: 720 }}>
       <Eyebrow>SETTINGS</Eyebrow>
       <h1 className="cq-title-l" style={{ marginTop: 12, marginBottom: 24 }}>
-        PROGRAM SETTINGS.
+        CHATRAIL SETTINGS.
       </h1>
       <ProgramSettingsForm program={program} />
     </div>

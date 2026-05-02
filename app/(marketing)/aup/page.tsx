@@ -2,8 +2,8 @@ import * as React from "react";
 import { Eyebrow } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Acceptable Use Policy — ChatQuest",
-  description: "What you can and can't do on ChatQuest.",
+  title: "Acceptable Use Policy — Chatrail",
+  description: "What you can and can't do on Chatrail.",
 };
 export const revalidate = 86400;
 
@@ -21,7 +21,7 @@ export default function AupPage() {
       </p>
 
       <p style={{ marginBottom: 24, fontSize: 16, lineHeight: 1.55 }}>
-        ChatQuest is for serious chatbot-based learning. Don't use it for any of
+        Chatrail is for serious chatbot-based learning. Don't use it for any of
         the following:
       </p>
 
@@ -29,7 +29,7 @@ export default function AupPage() {
         <li>Illegal activity in the jurisdictions where you and your learners are.</li>
         <li>Generating CSAM, harassment, doxxing material, malware, phishing copy, election disinfo, or anything that violates the underlying LLM provider's terms.</li>
         <li>Trying to extract other tenants' data, evade rate limits, scrape the platform, or reverse-engineer security controls.</li>
-        <li>Using ChatQuest as a generic LLM proxy unrelated to learning content (we'll close these accounts and forfeit any deposit).</li>
+        <li>Using Chatrail as a generic LLM proxy unrelated to learning content (we'll close these accounts and forfeit any deposit).</li>
         <li>Impersonating real people in a way that misleads learners.</li>
         <li>Knowingly uploading copyrighted materials you don't have rights to.</li>
         <li>Running benchmark / load tests without prior written approval.</li>

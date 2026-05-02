@@ -11,7 +11,7 @@ export function stripe() {
   _stripe = new Stripe(key, {
     apiVersion: "2025-02-24.acacia",
     typescript: true,
-    appInfo: { name: "ChatQuest", version: "0.1.0" },
+    appInfo: { name: "Chatrail", version: "0.1.0" },
   });
   return _stripe;
 }

@@ -24,7 +24,7 @@ export default async function LearnHub() {
 
   return (
     <div className="cq-page">
-      <Eyebrow>MY PROGRAMS</Eyebrow>
+      <Eyebrow>MY CHATRAILS</Eyebrow>
       <h1 className="cq-title-l" style={{ marginTop: 12, marginBottom: 24 }}>
         LEARN.
       </h1>

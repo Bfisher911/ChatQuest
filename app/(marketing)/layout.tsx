@@ -8,7 +8,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <div className="row" style={{ gap: 28 }}>
           <Link className="cq-logo" href="/">
             <span className="cq-logo-mark">CHAT</span>
-            <span className="cq-logo-quest">QUEST</span>
+            <span className="cq-logo-quest">RAIL</span>
           </Link>
           <nav className="cq-nav" style={{ marginLeft: 16 }}>
             <Link href="/features">Features</Link>
@@ -24,7 +24,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       </header>
       <main style={{ flex: 1, overflowY: "auto" }}>{children}</main>
       <footer className="cq-footer">
-        <div>© 2026 CHATQUEST · ALL RIGHTS RESERVED</div>
+        <div>© 2026 CHATRAIL · ALL RIGHTS RESERVED</div>
         <div className="row" style={{ gap: 18 }}>
           <Link href="/docs">DOCS</Link>
           <Link href="/terms">TERMS</Link>

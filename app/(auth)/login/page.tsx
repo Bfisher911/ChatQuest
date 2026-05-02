@@ -24,7 +24,7 @@ export default function LoginPage({
       </div>
       <div className="cq-auth__art">
         <div>
-          <Eyebrow>■ CHATQUEST</Eyebrow>
+          <Eyebrow>■ CHATRAIL</Eyebrow>
           <h2>CHATBOT-NATIVE LMS FOR SERIOUS LEARNING.</h2>
           <p style={{ fontSize: 16, opacity: 0.85 }}>
             Build AI tutors. Wire them into a visual learning path. Grade transcripts with rubrics.

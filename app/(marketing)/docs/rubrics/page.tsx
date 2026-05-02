@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Eyebrow, Btn } from "@/components/brutalist";
 
 export const metadata = {
-  title: "Rubric authoring — ChatQuest docs",
+  title: "Rubric authoring — Chatrail docs",
   description: "How to write a rubric the AI can suggest scores against.",
 };
 export const revalidate = 3600;

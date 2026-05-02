@@ -1,6 +1,6 @@
-# ChatQuest — Production-Readiness Roadmap
+# Chatrail — Production-Readiness Roadmap
 
-This document describes everything that needs to happen to take ChatQuest from
+This document describes everything that needs to happen to take Chatrail from
 "Phase 1 MVP deployed at `chattrail.netlify.app`" to a production-ready,
 multi-tenant SaaS platform.
 
@@ -23,7 +23,7 @@ across all phases — but every phase is independently shippable.
 | --- | --- | --- | --- | --- |
 | **A** | Production safety: RAG-on-Lambda fix, RLS audit, security headers, file-upload validation, schema hygiene | 2.5 | 2.5 | High — blocks any real user |
 | **B** | Branded emails + first-run polish | 1.5 | 4 | Medium |
-| **C** | Visual path builder + non-bot node types + certificates | 5 | 9 | High — what makes ChatQuest *the product* |
+| **C** | Visual path builder + non-bot node types + certificates | 5 | 9 | High — what makes Chatrail *the product* |
 | **D** | Stripe billing + seat licensing + plan-feature gating | 4 | 13 | High — required to monetize |
 | **E** | Cost control + analytics dashboards | 3 | 16 | Medium |
 | **F** | Engineering hygiene: tests, CI, Sentry, structured logging, /api/health | 4 | 20 | Medium — needed before team grows |
@@ -177,7 +177,7 @@ PDF attachment + verification link.
 
 ## Phase C — Visual path builder + non-bot nodes + certificates (5 days)
 
-The biggest single Phase. After this lands, ChatQuest is the product the
+The biggest single Phase. After this lands, Chatrail is the product the
 spec describes, not "a chatbot with auth around it."
 
 ### C.1 React Flow integration (1 day)

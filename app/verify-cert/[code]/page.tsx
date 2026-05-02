@@ -65,7 +65,7 @@ export default async function VerifyCertPage({ params }: { params: { code: strin
             }}
           >
             ISSUED {new Date(award.awarded_at).toISOString().slice(0, 10)} ·{" "}
-            {(org?.name ?? "ChatQuest").toUpperCase()}
+            {(org?.name ?? "Chatrail").toUpperCase()}
           </p>
           <div className="cq-grid cq-grid--2" style={{ gap: 0, border: "var(--hair) solid var(--ink)" }}>
             <div style={{ padding: 16, borderRight: "var(--hair) solid var(--ink)" }}>
@@ -88,7 +88,7 @@ export default async function VerifyCertPage({ params }: { params: { code: strin
               </a>
             </Btn>
             <Btn sm ghost asChild>
-              <Link href="/">CHATQUEST.APP</Link>
+              <Link href="/">CHATRAIL.APP</Link>
             </Btn>
           </div>
           <div style={{ marginTop: 24, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>

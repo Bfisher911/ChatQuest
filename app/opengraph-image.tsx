@@ -3,7 +3,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "ChatQuest — chatbot-native LMS";
+export const alt = "Chatrail — chatbot-native LMS";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -46,7 +46,7 @@ export default function OG() {
               marginLeft: 6,
             }}
           >
-            QUEST
+            RAIL
           </span>
         </div>
         <div

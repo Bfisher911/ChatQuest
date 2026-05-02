@@ -105,14 +105,14 @@ export async function InstructorDashboard({
   const checklist: ChecklistItemSpec[] = [
     {
       key: "create_program",
-      label: "Create your first program",
+      label: "Create your first Chatrail",
       done: !!firstProgram,
       href: "/programs/new",
-      cta: "NEW PROGRAM",
+      cta: "NEW CHATRAIL",
     },
     {
       key: "add_node",
-      label: "Add a chatbot node to the program",
+      label: "Add a chatbot node to the Chatrail",
       done: !!firstNode,
       href: firstProgramId ? `/programs/${firstProgramId}/nodes/new` : "/programs",
       cta: "ADD NODE",
@@ -141,7 +141,7 @@ export async function InstructorDashboard({
   ];
 
   const stats = [
-    { k: "ACTIVE PROGRAMS", v: bin(ownPrograms?.length ?? 0, 8).slice(2) },
+    { k: "ACTIVE CHATRAILS", v: bin(ownPrograms?.length ?? 0, 8).slice(2) },
     { k: "LEARNERS", v: String(totalLearners) },
     { k: "PENDING REVIEWS", v: String(pendingGrades?.length ?? 0) },
     { k: "CERTIFICATES", v: String(totalCertificates) },
@@ -193,7 +193,7 @@ export async function InstructorDashboard({
 
       <div className="row-between" style={{ marginBottom: 16 }}>
         <div className="row" style={{ gap: 16 }}>
-          <Eyebrow>PROGRAMS</Eyebrow>
+          <Eyebrow>CHATRAILS</Eyebrow>
           <div className="cq-mono" style={{ fontSize: 13, color: "var(--muted)" }}>
             {ownPrograms?.length ?? 0} TOTAL
           </div>
@@ -207,7 +207,7 @@ export async function InstructorDashboard({
           </IconBtn>
           <Btn sm asChild>
             <Link href="/programs/new">
-              <Icon name="plus" /> NEW PROGRAM
+              <Icon name="plus" /> NEW CHATRAIL
             </Link>
           </Btn>
         </div>
@@ -267,7 +267,7 @@ function EmptyState() {
       </div>
       <Btn asChild>
         <Link href="/programs/new">
-          <Icon name="plus" /> CREATE PROGRAM
+          <Icon name="plus" /> CREATE CHATRAIL
         </Link>
       </Btn>
     </div>
