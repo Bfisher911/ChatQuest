@@ -26,6 +26,10 @@ import { Btn, Chip, Eyebrow, Icon, IconBtn } from "@/components/brutalist";
 import { bin } from "@/lib/utils/binary";
 import { cx } from "@/lib/utils/cx";
 import {
+  NodeInspector as TypedNodeInspector,
+  type SiblingNode,
+} from "@/components/builder/inspectors";
+import {
   createNode,
   updateNode,
   deleteNode,
@@ -270,9 +274,23 @@ function PathBuilderInner({
       {/* RIGHT: inspector */}
       <aside className="cq-pb__inspector">
         {selectedNode ? (
-          <NodeInspector
+          <TypedNodeInspector
             programId={programId}
-            node={selectedNode}
+            node={{
+              id: selectedNode.id,
+              type: selectedNode.type,
+              title: selectedNode.title,
+              display_order: selectedNode.display_order,
+              points: selectedNode.points ?? 0,
+              is_required: selectedNode.is_required,
+              config: (selectedNode.config as Record<string, unknown>) ?? {},
+            }}
+            siblings={initialNodes.map((n) => ({
+              id: n.id,
+              title: n.title,
+              type: n.type,
+              display_order: n.display_order,
+            })) as SiblingNode[]}
             onChange={() => router.refresh()}
             onDelete={removeSelected}
           />
@@ -306,110 +324,6 @@ function defaultConfig(type: NodeType): Record<string, unknown> {
   }
 }
 
-interface InspectorProps {
-  programId: string;
-  node: PathNodeMin;
-  onChange: () => void;
-  onDelete: () => void;
-}
-
-function NodeInspector({ programId, node, onChange, onDelete }: InspectorProps) {
-  const [pending, setPending] = React.useState(false);
-  const [title, setTitle] = React.useState(node.title);
-  const [points, setPoints] = React.useState(String(node.points ?? 0));
-  const [isRequired, setIsRequired] = React.useState(node.is_required);
-  const [config, setConfig] = React.useState(JSON.stringify(node.config ?? {}, null, 2));
-
-  async function save() {
-    setPending(true);
-    let parsedConfig: Record<string, unknown>;
-    try {
-      parsedConfig = JSON.parse(config);
-    } catch {
-      toast.error("Config is not valid JSON");
-      setPending(false);
-      return;
-    }
-    const res = await updateNode({
-      nodeId: node.id,
-      programId,
-      title,
-      points: Number(points),
-      isRequired,
-      config: parsedConfig,
-    });
-    setPending(false);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
-    }
-    toast.success("Saved.");
-    onChange();
-  }
-
-  return (
-    <>
-      <h4>■ INSPECTOR · {bin(node.display_order + 1, 4)}</h4>
-      <div className="cq-field">
-        <label>Type</label>
-        <div style={{ display: "flex", gap: 6 }}>
-          <Chip>{node.type.toUpperCase()}</Chip>
-        </div>
-      </div>
-      <div className="cq-field">
-        <label htmlFor="title">Title</label>
-        <input
-          id="title"
-          className="cq-input"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
-      <div className="cq-grid cq-grid--2" style={{ gap: 12 }}>
-        <div className="cq-field">
-          <label htmlFor="points">Points</label>
-          <input
-            id="points"
-            type="number"
-            min={0}
-            className="cq-input"
-            value={points}
-            onChange={(e) => setPoints(e.target.value)}
-          />
-        </div>
-        <div className="cq-field">
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="checkbox" checked={isRequired} onChange={(e) => setIsRequired(e.target.checked)} />
-            <span>Required</span>
-          </label>
-        </div>
-      </div>
-      <div className="cq-field">
-        <label htmlFor="config">Config (JSON)</label>
-        <textarea
-          id="config"
-          className="cq-textarea"
-          value={config}
-          onChange={(e) => setConfig(e.target.value)}
-          rows={10}
-          style={{ fontFamily: "var(--font-mono)" }}
-        />
-      </div>
-      <div className="row" style={{ gap: 8 }}>
-        <Btn sm onClick={save} disabled={pending}>
-          {pending ? "SAVING…" : "SAVE"} <Icon name="check" />
-        </Btn>
-        {node.type === "bot" && (
-          <Btn sm ghost asChild>
-            <a href={`/programs/${programId}/nodes/${node.id}`}>BOT EDITOR <Icon name="arrow" /></a>
-          </Btn>
-        )}
-      </div>
-      <div style={{ marginTop: 16 }}>
-        <Btn sm ghost onClick={onDelete}>
-          <Icon name="trash" /> DELETE NODE
-        </Btn>
-      </div>
-    </>
-  );
-}
+// (Inline NodeInspector removed in Phase R+ — replaced by the typed
+// dispatcher in components/builder/inspectors/index.tsx, which renders a
+// content-aware form per node type.)
