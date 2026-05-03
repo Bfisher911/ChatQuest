@@ -560,3 +560,93 @@ export async function deleteKbFile(fileId: string, programId: string) {
   revalidatePath(`/programs/${programId}/kb`);
   return { ok: true as const };
 }
+
+// ─────────── Permanent Chatrail deletion ───────────
+//
+// Hard-delete with title-typed confirmation gate. Foreign keys cascade to
+// path nodes / edges / rules / chatbot_configs / KB collections + files /
+// conversations / messages / submissions / grades / cert awards / enrollments
+// / instructors / invites / billing rows. Rubrics survive (FK is
+// ON DELETE SET NULL) since they're org-level and reusable.
+//
+// We pre-fetch storage paths for KB files + PDF node files and remove the
+// blobs from buckets BEFORE the DB cascade — otherwise we'd leak storage.
+export async function deleteProgram(input: { programId: string; confirmTitle: string }) {
+  const session = await getActiveRole();
+  if (!session?.activeOrganizationId) return { ok: false as const, error: "No active organization" };
+  if (!["instructor", "org_admin", "super_admin"].includes(session.activeRole)) {
+    return { ok: false as const, error: "Only Creators can delete Chatrails." };
+  }
+  const admin = createServiceRoleClient();
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id, organization_id, title")
+    .eq("id", input.programId)
+    .maybeSingle();
+  if (!program) return { ok: false as const, error: "Chatrail not found" };
+  if (program.organization_id !== session.activeOrganizationId && !session.user.isSuperAdmin) {
+    return { ok: false as const, error: "Cross-org deletion refused." };
+  }
+
+  // Title-typed confirmation must match exactly (case-sensitive). This is the
+  // last guard between an accidental click and permanent data loss.
+  if ((input.confirmTitle ?? "").trim() !== program.title.trim()) {
+    return {
+      ok: false as const,
+      error: "Confirmation text doesn't match the Chatrail title.",
+    };
+  }
+
+  // ─── Storage cleanup: KB files (kb-files bucket) + PDF node files (node-files bucket) ───
+  // Done before the DB cascade so we still have the storage_path values.
+  const { data: kbCollections } = await admin
+    .from("knowledge_collections")
+    .select("id")
+    .eq("program_id", program.id);
+  const collectionIds = (kbCollections ?? []).map((c) => c.id);
+  if (collectionIds.length) {
+    const { data: kbFiles } = await admin
+      .from("knowledge_files")
+      .select("storage_path")
+      .in("collection_id", collectionIds);
+    const kbPaths = (kbFiles ?? []).map((f) => f.storage_path).filter(Boolean) as string[];
+    if (kbPaths.length) {
+      const { error: kbErr } = await admin.storage.from(KB_BUCKET).remove(kbPaths);
+      if (kbErr) console.error("[delete-chatrail] kb storage cleanup:", kbErr.message);
+    }
+  }
+
+  const { data: pdfNodes } = await admin
+    .from("path_nodes")
+    .select("config")
+    .eq("program_id", program.id)
+    .eq("type", "pdf");
+  const pdfPaths: string[] = [];
+  for (const n of pdfNodes ?? []) {
+    const cfg = (n.config as { storage_path?: string }) ?? {};
+    if (cfg.storage_path) pdfPaths.push(cfg.storage_path);
+  }
+  if (pdfPaths.length) {
+    const { error: pdfErr } = await admin.storage.from("node-files").remove(pdfPaths);
+    if (pdfErr) console.error("[delete-chatrail] node-files cleanup:", pdfErr.message);
+  }
+
+  // ─── Drop the program row; FK cascades clear everything else ───
+  const { error: delErr } = await admin.from("programs").delete().eq("id", program.id);
+  if (delErr) return { ok: false as const, error: delErr.message };
+
+  // Audit trail.
+  await admin.from("audit_logs").insert({
+    organization_id: program.organization_id,
+    actor_user_id: session.user.id,
+    action: "program.deleted",
+    target_type: "program",
+    target_id: program.id,
+    metadata: { title: program.title },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/programs");
+  return { ok: true as const };
+}

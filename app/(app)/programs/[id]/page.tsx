@@ -6,6 +6,7 @@ import { Cassette, Eyebrow, Btn, Icon, Chip, Frame } from "@/components/brutalis
 import { bin } from "@/lib/utils/binary";
 import { DuplicateChatrailButton } from "./duplicate-button";
 import { ProgramStatusControls } from "./status-controls";
+import { DeleteChatrailButton } from "./delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -162,6 +163,24 @@ export default async function ProgramOverview({ params }: { params: { id: string
             </Btn>
           </div>
         )}
+      </div>
+
+      {/* Danger zone — separated from main controls so it can't be triggered accidentally. */}
+      <div style={{ marginTop: 48, paddingTop: 24, borderTop: "var(--hair) solid var(--ink)" }}>
+        <Eyebrow>DANGER ZONE</Eyebrow>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--muted)",
+            margin: "8px 0 12px",
+            maxWidth: 560,
+          }}
+        >
+          Permanently delete this Chatrail. This nukes every node, conversation,
+          grade, and certificate award attached to it.
+        </p>
+        <DeleteChatrailButton programId={program.id} programTitle={program.title} />
       </div>
     </div>
   );
