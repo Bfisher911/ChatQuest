@@ -8,6 +8,24 @@ import { RevokeInviteButton, RemoveLearnerButton } from "./row-actions";
 
 export const dynamic = "force-dynamic";
 
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const diffMs = Date.now() - then;
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  const mo = Math.floor(day / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  const yr = Math.floor(day / 365);
+  return `${yr}y ago`;
+}
+
 export default async function RosterPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data: program } = await supabase
@@ -24,6 +42,77 @@ export default async function RosterPage({ params }: { params: { id: string } })
 
   type Row = { user_id: string; enrolled_at: string; status: string; user: { email: string; full_name: string | null; display_name: string | null } | null };
   const learners = (enrollments ?? []) as unknown as Row[];
+
+  // ─────────── Per-learner progress aggregates ───────────
+  // Roster is usually small (<100), so we fetch all relevant rows for the
+  // enrolled set and aggregate in JS rather than per-learner round-trips.
+  const learnerIds = learners.map((l) => l.user_id);
+  const { count: nodeCount } = await supabase
+    .from("path_nodes")
+    .select("id", { count: "exact", head: true })
+    .eq("program_id", params.id);
+  const totalNodes = nodeCount ?? 0;
+
+  const { data: gradeRows } = learnerIds.length
+    ? await supabase
+        .from("grades")
+        .select("learner_id, status, percentage")
+        .eq("program_id", params.id)
+        .in("learner_id", learnerIds)
+    : { data: [] as { learner_id: string; status: string; percentage: number | string | null }[] };
+
+  const { data: convRows } = learnerIds.length
+    ? await supabase
+        .from("conversations")
+        .select("learner_id, updated_at, status")
+        .eq("program_id", params.id)
+        .in("learner_id", learnerIds)
+        .order("updated_at", { ascending: false })
+    : { data: [] as { learner_id: string; updated_at: string; status: string }[] };
+
+  type Agg = {
+    completed: number;
+    inProgress: number;
+    avgPct: number | null;
+    lastActive: string | null;
+  };
+  const aggByLearner = new Map<string, Agg>();
+  for (const id of learnerIds) {
+    aggByLearner.set(id, { completed: 0, inProgress: 0, avgPct: null, lastActive: null });
+  }
+  const pctSums = new Map<string, { sum: number; n: number }>();
+  for (const g of (gradeRows ?? []) as { learner_id: string; status: string; percentage: number | string | null }[]) {
+    const a = aggByLearner.get(g.learner_id);
+    if (!a) continue;
+    if (g.status === "graded" || g.status === "completed") a.completed++;
+    if (g.percentage != null) {
+      const ps = pctSums.get(g.learner_id) ?? { sum: 0, n: 0 };
+      ps.sum += Number(g.percentage);
+      ps.n += 1;
+      pctSums.set(g.learner_id, ps);
+    }
+  }
+  for (const [id, ps] of pctSums) {
+    const a = aggByLearner.get(id);
+    if (a && ps.n > 0) a.avgPct = ps.sum / ps.n;
+  }
+  // First conv row per learner is the most recent (sorted desc above).
+  const seen = new Set<string>();
+  for (const c of (convRows ?? []) as { learner_id: string; updated_at: string; status: string }[]) {
+    if (seen.has(c.learner_id)) continue;
+    seen.add(c.learner_id);
+    const a = aggByLearner.get(c.learner_id);
+    if (a) a.lastActive = c.updated_at;
+  }
+  // In-progress = any conversation in 'in_progress' status that isn't already counted as completed.
+  const inProgressSeen = new Set<string>();
+  for (const c of (convRows ?? []) as { learner_id: string; updated_at: string; status: string }[]) {
+    if (c.status === "in_progress" && !inProgressSeen.has(c.learner_id)) {
+      inProgressSeen.add(c.learner_id);
+      const a = aggByLearner.get(c.learner_id);
+      if (a) a.inProgress++;
+    }
+  }
 
   const { data: instructors } = await supabase
     .from("program_instructors")
@@ -60,8 +149,20 @@ export default async function RosterPage({ params }: { params: { id: string } })
         </div>
       </Frame>
 
-      <div className="row-between" style={{ marginBottom: 12 }}>
+      <div className="row-between" style={{ marginBottom: 12, alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <Eyebrow>LEARNERS · {learners.length}</Eyebrow>
+        {totalNodes > 0 && learners.length > 0 ? (
+          <span className="cq-mono" style={{ fontSize: 11, color: "var(--muted)" }}>
+            {learners.filter((l) => (aggByLearner.get(l.user_id)?.completed ?? 0) >= totalNodes).length} FINISHED
+            {" · "}
+            {learners.filter((l) => {
+              const a = aggByLearner.get(l.user_id);
+              return a && a.completed > 0 && a.completed < totalNodes;
+            }).length} IN PROGRESS
+            {" · "}
+            {learners.filter((l) => (aggByLearner.get(l.user_id)?.completed ?? 0) === 0 && !aggByLearner.get(l.user_id)?.lastActive).length} NOT STARTED
+          </span>
+        ) : null}
       </div>
       <div className="cq-frame" style={{ marginBottom: 24 }}>
         <table className="cq-table">
@@ -69,44 +170,72 @@ export default async function RosterPage({ params }: { params: { id: string } })
             <tr>
               <th>NAME</th>
               <th>EMAIL</th>
+              <th className="num">PROGRESS</th>
+              <th className="num">AVG GRADE</th>
+              <th className="num">LAST ACTIVE</th>
               <th className="num">STATUS</th>
-              <th className="num">ENROLLED</th>
-            </tr>
-          </thead>
-          <thead>
-            <tr>
-              <th>NAME</th>
-              <th>EMAIL</th>
-              <th className="num">STATUS</th>
-              <th className="num">ENROLLED</th>
               <th className="num">ACTION</th>
             </tr>
           </thead>
           <tbody>
             {learners.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>
+                <td colSpan={7} style={{ textAlign: "center", color: "var(--muted)" }}>
                   No learners yet.
                 </td>
               </tr>
             ) : (
-              learners.map((l) => (
-                <tr key={l.user_id}>
-                  <td>{l.user?.display_name ?? l.user?.full_name ?? "—"}</td>
-                  <td>{l.user?.email ?? "—"}</td>
-                  <td className="num">
-                    <Chip ghost>{l.status.toUpperCase()}</Chip>
-                  </td>
-                  <td className="num">{new Date(l.enrolled_at).toISOString().slice(0, 10)}</td>
-                  <td className="num">
-                    <RemoveLearnerButton
-                      learnerUserId={l.user_id}
-                      programId={program.id}
-                      learnerName={l.user?.display_name ?? l.user?.full_name ?? l.user?.email ?? "this learner"}
-                    />
-                  </td>
-                </tr>
-              ))
+              learners.map((l) => {
+                const a = aggByLearner.get(l.user_id) ?? { completed: 0, inProgress: 0, avgPct: null, lastActive: null };
+                const progressPct = totalNodes === 0 ? 0 : Math.round((a.completed / totalNodes) * 100);
+                const isFinished = totalNodes > 0 && a.completed >= totalNodes;
+                const notStarted = a.completed === 0 && !a.lastActive;
+                return (
+                  <tr key={l.user_id}>
+                    <td>{l.user?.display_name ?? l.user?.full_name ?? "—"}</td>
+                    <td>{l.user?.email ?? "—"}</td>
+                    <td className="num">
+                      {totalNodes === 0 ? (
+                        <span style={{ color: "var(--muted)" }}>—</span>
+                      ) : (
+                        <span title={`${progressPct}% complete`}>
+                          <Chip ghost={!isFinished}>
+                            {a.completed} / {totalNodes}
+                          </Chip>
+                        </span>
+                      )}
+                    </td>
+                    <td className="num">
+                      {a.avgPct == null ? (
+                        <span style={{ color: "var(--muted)" }}>—</span>
+                      ) : (
+                        `${Math.round(a.avgPct)}%`
+                      )}
+                    </td>
+                    <td className="num">
+                      {a.lastActive ? (
+                        <span title={new Date(a.lastActive).toISOString()}>
+                          {relativeTime(a.lastActive)}
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--muted)" }}>—</span>
+                      )}
+                    </td>
+                    <td className="num">
+                      <Chip ghost={!isFinished && !notStarted}>
+                        {isFinished ? "DONE" : notStarted ? "NOT STARTED" : l.status.toUpperCase()}
+                      </Chip>
+                    </td>
+                    <td className="num">
+                      <RemoveLearnerButton
+                        learnerUserId={l.user_id}
+                        programId={program.id}
+                        learnerName={l.user?.display_name ?? l.user?.full_name ?? l.user?.email ?? "this learner"}
+                      />
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
