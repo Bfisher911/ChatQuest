@@ -173,6 +173,100 @@ export async function updateBotConfig(input: z.infer<typeof updateBotConfigSchem
   return { ok: true as const };
 }
 
+// ─────────── Duplicate a single node within its Chatrail ───────────
+
+/**
+ * Clone a node within the same Chatrail. Useful for spinning up a variant of
+ * a chatbot, content page, or PDF without retyping every field. Copies:
+ *   - path_nodes row (offset position, "Copy of" title prefix, status fresh)
+ *   - chatbot_configs row when type = bot (rebound to the new node id)
+ *   - node_rules attached to the original (rebound; jsonb config's node_id /
+ *     node_ids fields are NOT remapped — this is a single-node clone, not a
+ *     full Chatrail clone).
+ *
+ * Edges, learner submissions, conversations, and grades are intentionally not
+ * copied. The clone starts fresh.
+ */
+export async function duplicateNode(nodeId: string) {
+  const session = await getActiveRole();
+  if (!session?.activeOrganizationId) return { ok: false as const, error: "No active organization" };
+  if (!["instructor", "org_admin", "super_admin"].includes(session.activeRole)) {
+    return { ok: false as const, error: "Only Creators can duplicate nodes." };
+  }
+  const supabase = createClient();
+  const { data: src } = await supabase
+    .from("path_nodes")
+    .select("id, program_id, type, title, x, y, points, is_required, config, available_at, due_at, until_at")
+    .eq("id", nodeId)
+    .maybeSingle();
+  if (!src) return { ok: false as const, error: "Node not found" };
+
+  // Determine the next display_order for this Chatrail.
+  const { data: existing } = await supabase
+    .from("path_nodes")
+    .select("display_order")
+    .eq("program_id", src.program_id)
+    .order("display_order", { ascending: false })
+    .limit(1);
+  const nextOrder = (existing?.[0]?.display_order ?? -1) + 1;
+
+  // Offset coordinates so the copy doesn't overlap on the canvas.
+  const xNum = src.x == null ? 0 : Number(src.x);
+  const yNum = src.y == null ? 0 : Number(src.y);
+  const offsetX = isNaN(xNum) ? 40 : xNum + 40;
+  const offsetY = isNaN(yNum) ? 40 : yNum + 40;
+
+  const { data: cloned, error: nodeErr } = await supabase
+    .from("path_nodes")
+    .insert({
+      program_id: src.program_id,
+      type: src.type,
+      title: `Copy of ${src.title}`,
+      display_order: nextOrder,
+      x: String(offsetX),
+      y: String(offsetY),
+      points: src.points,
+      is_required: src.is_required,
+      config: src.config,
+      available_at: src.available_at,
+      due_at: src.due_at,
+      until_at: src.until_at,
+    })
+    .select("id")
+    .single();
+  if (nodeErr || !cloned) return { ok: false as const, error: nodeErr?.message ?? "Failed to clone node" };
+
+  // Clone chatbot_configs for bot nodes.
+  if (src.type === "bot") {
+    const admin = createServiceRoleClient();
+    const { data: cfg } = await admin
+      .from("chatbot_configs")
+      .select(
+        "bot_name, avatar_initials, learner_instructions, system_prompt, conversation_goal, completion_criteria, model, temperature, max_tokens, token_budget, attempts_allowed, end_after_turns, end_when_objective_met, require_submit_button, produce_completion_summary, ask_reflection_questions, allow_retry_after_feedback, rubric_id, ai_grading_enabled, use_program_kb, node_kb_id",
+      )
+      .eq("node_id", nodeId)
+      .maybeSingle();
+    if (cfg) {
+      await admin.from("chatbot_configs").insert({ ...cfg, node_id: cloned.id });
+    }
+  }
+
+  // Clone node_rules attached to the source node.
+  const { data: rules } = await supabase
+    .from("node_rules")
+    .select("rule_kind, config")
+    .eq("node_id", nodeId);
+  if (rules && rules.length > 0) {
+    await supabase
+      .from("node_rules")
+      .insert(rules.map((r) => ({ node_id: cloned.id, rule_kind: r.rule_kind, config: r.config })));
+  }
+
+  revalidatePath(`/programs/${src.program_id}/builder`);
+  revalidatePath(`/programs/${src.program_id}`);
+  return { ok: true as const, nodeId: cloned.id };
+}
+
 // ─────────── Edge CRUD ───────────
 
 const edgeSchema = z.object({

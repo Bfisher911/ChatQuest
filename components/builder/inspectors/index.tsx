@@ -11,7 +11,7 @@ import {
   deleteNodeFile,
   upsertCertForNode,
 } from "@/lib/path/file-actions";
-import { updateNode, deleteNode, updateBotConfig } from "@/lib/path/actions";
+import { updateNode, deleteNode, updateBotConfig, duplicateNode } from "@/lib/path/actions";
 import { RichTextEditor } from "@/components/brutalist/rich-text";
 import Link from "next/link";
 
@@ -106,7 +106,8 @@ function InspectorShell({
         {/* Bot inspector is now fully inline — the standalone bot editor
             stays as a deep link for power users who want a wider canvas. */}
       </div>
-      <div style={{ marginTop: 16 }}>
+      <div className="row" style={{ marginTop: 16, gap: 8, flexWrap: "wrap" }}>
+        <DuplicateNodeButton nodeId={node.id} />
         <Btn sm ghost onClick={onDelete}>
           <Icon name="trash" /> DELETE NODE
         </Btn>
@@ -1155,6 +1156,39 @@ export function CertInspector(props: InspectorProps) {
         approval is required).
       </div>
     </InspectorShell>
+  );
+}
+
+// ───────── shared DUPLICATE button ─────────
+
+function DuplicateNodeButton({ nodeId }: { nodeId: string }) {
+  const router = useRouter();
+  const [pending, setPending] = React.useState(false);
+  return (
+    <Btn
+      sm
+      ghost
+      disabled={pending}
+      onClick={async () => {
+        if (
+          !confirm(
+            "Duplicate this node? The copy lands offset on the canvas with a 'Copy of' title and no incoming/outgoing edges.",
+          )
+        )
+          return;
+        setPending(true);
+        const res = await duplicateNode(nodeId);
+        setPending(false);
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Node duplicated.");
+        router.refresh();
+      }}
+    >
+      {pending ? "…" : "DUPLICATE NODE"} <Icon name="grid" />
+    </Btn>
   );
 }
 

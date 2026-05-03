@@ -44,7 +44,7 @@ export default async function LearnerGradePage({
   const { data: grade } = await supabase
     .from("grades")
     .select(
-      "id, status, score, max_score, percentage, instructor_comment, ai_summary, ai_suggested_score, rubric_id, graded_at",
+      "id, conversation_id, status, score, max_score, percentage, instructor_comment, ai_summary, ai_suggested_score, rubric_id, graded_at",
     )
     .eq("program_id", program.id)
     .eq("node_id", node.id)
@@ -273,6 +273,17 @@ export default async function LearnerGradePage({
         {isGraded || grade.status === "pending_review" ? (
           <Btn ghost asChild>
             <Link href={`/learn/${program.id}/${node.id}`}>REVIEW CONVERSATION</Link>
+          </Btn>
+        ) : null}
+        {grade.conversation_id ? (
+          <Btn ghost asChild>
+            <a
+              href={`/api/conversations/${grade.conversation_id}/export`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Icon name="download" /> DOWNLOAD TRANSCRIPT
+            </a>
           </Btn>
         ) : null}
         <Btn ghost asChild>

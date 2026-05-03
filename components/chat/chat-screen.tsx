@@ -207,6 +207,15 @@ export function ChatScreen(props: ChatScreenProps) {
                 <i style={{ width: `${tokenPct}%` }} />
               </div>
             </div>
+            <Btn sm ghost asChild title="Download this transcript as Markdown">
+              <a
+                href={`/api/conversations/${props.conversationId}/export`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="download" />
+              </a>
+            </Btn>
             <Btn sm onClick={onSubmit} disabled={pending || submitted}>
               {submitted ? "SUBMITTED" : "SUBMIT"} <Icon name="arrow" />
             </Btn>
