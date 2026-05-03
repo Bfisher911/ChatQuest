@@ -104,9 +104,14 @@ export function Header({
             ))}
           </select>
         ) : null}
-        <IconBtn title={`Signed in as ${displayName}`} aria-label="Account">
+        <Link
+          href="/account"
+          title={`Signed in as ${displayName} — open account`}
+          aria-label="Account"
+          className="cq-icon-btn"
+        >
           <Icon name="user" />
-        </IconBtn>
+        </Link>
         <IconBtn
           title="Sign out"
           aria-label="Sign out"
