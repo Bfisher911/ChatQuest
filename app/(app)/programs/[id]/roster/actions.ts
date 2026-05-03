@@ -126,6 +126,45 @@ export async function inviteLearner(formData: FormData) {
   return { ok: true as const, inviteUrl: url };
 }
 
+// ─────────── revoke a pending invite ───────────
+
+export async function revokeInvite(inviteId: string, programId: string) {
+  const session = await getActiveRole();
+  if (!session) return { ok: false as const, error: "Not signed in" };
+  if (!["instructor", "org_admin", "super_admin"].includes(session.activeRole)) {
+    return { ok: false as const, error: "Only Creators can revoke invites." };
+  }
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from("invites")
+    .update({ status: "revoked" })
+    .eq("id", inviteId)
+    .eq("program_id", programId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath(`/programs/${programId}/roster`);
+  return { ok: true as const };
+}
+
+// ─────────── remove a learner from a Chatrail ───────────
+
+export async function removeLearnerFromProgram(learnerUserId: string, programId: string) {
+  const session = await getActiveRole();
+  if (!session) return { ok: false as const, error: "Not signed in" };
+  if (!["instructor", "org_admin", "super_admin"].includes(session.activeRole)) {
+    return { ok: false as const, error: "Only Creators can remove learners." };
+  }
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from("program_enrollments")
+    .delete()
+    .eq("user_id", learnerUserId)
+    .eq("program_id", programId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath(`/programs/${programId}/roster`);
+  revalidatePath("/seats");
+  return { ok: true as const };
+}
+
 const csvSchema = z.object({ programId: z.string().uuid(), csv: z.string().min(1) });
 export async function inviteCsv(formData: FormData) {
   const session = await getActiveRole();

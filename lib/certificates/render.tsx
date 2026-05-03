@@ -3,12 +3,12 @@
 import * as React from "react";
 import {
   Document,
+  Image,
   Page,
   Text,
   View,
   StyleSheet,
   pdf,
-  Font,
 } from "@react-pdf/renderer";
 
 // Use Helvetica + Courier as base fonts (registered by @react-pdf/renderer
@@ -123,6 +123,12 @@ export interface CertPdfInput {
   verificationCode: string;
   verificationUrl: string;
   bodyText?: string | null;
+  /** Public URL of an org logo (PNG/JPG/SVG). Replaces the brand mark. */
+  orgLogoUrl?: string | null;
+  /** Public URL of a transparent signature image. Renders above the typed name. */
+  signatureImageUrl?: string | null;
+  /** "Letter-landscape" (default) or "A4-landscape". */
+  paperSize?: "Letter-landscape" | "A4-landscape";
 }
 
 function CertificateDoc(input: CertPdfInput) {
@@ -132,15 +138,20 @@ function CertificateDoc(input: CertPdfInput) {
     .split("-")
     .reverse()
     .join("-");
+  const pageSize = input.paperSize === "A4-landscape" ? "A4" : "LETTER";
   return (
     <Document title={`${input.certificateTitle} · ${input.recipientName}`}>
-      <Page orientation="landscape" size="LETTER" style={styles.page}>
+      <Page orientation="landscape" size={pageSize} style={styles.page}>
         <View style={styles.outer}>
           <View style={styles.topBar}>
-            <View style={{ flexDirection: "row" }}>
-              <Text style={styles.logoMark}>CHAT</Text>
-              <Text style={styles.logoQuest}>RAIL</Text>
-            </View>
+            {input.orgLogoUrl ? (
+              <Image src={input.orgLogoUrl} style={{ maxHeight: 36, maxWidth: 180 }} />
+            ) : (
+              <View style={{ flexDirection: "row" }}>
+                <Text style={styles.logoMark}>CHAT</Text>
+                <Text style={styles.logoQuest}>RAIL</Text>
+              </View>
+            )}
             <Text style={styles.topMeta}>
               ISSUED · {date.toUpperCase()}{"\n"}
               {input.organizationName.toUpperCase()}
@@ -153,9 +164,9 @@ function CertificateDoc(input: CertPdfInput) {
           <Text style={styles.awardedTo}>AWARDED TO</Text>
           <Text style={styles.recipient}>{input.recipientName}</Text>
           <Text style={styles.programLine}>
-            For successfully completing the program{" "}
+            For successfully completing{" "}
             <Text style={{ fontFamily: "Helvetica-Bold" }}>{input.programTitle}</Text>{" "}
-            on the Chatrail platform.
+            on Chatrail.
           </Text>
           {input.bodyText ? (
             <Text style={[styles.programLine, { marginTop: 12 }]}>{input.bodyText}</Text>
@@ -163,12 +174,18 @@ function CertificateDoc(input: CertPdfInput) {
 
           <View style={styles.bottomBar}>
             <View style={styles.signatureBlock}>
+              {input.signatureImageUrl ? (
+                <Image
+                  src={input.signatureImageUrl}
+                  style={{ maxHeight: 38, marginBottom: 4 }}
+                />
+              ) : null}
               <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 13 }}>
                 {input.signerName ?? "Program Instructor"}
               </Text>
               {input.signerTitle ? <Text>{input.signerTitle}</Text> : null}
               <Text style={{ fontFamily: "Courier", fontSize: 9, marginTop: 2 }}>
-                INSTRUCTOR · {input.organizationName.toUpperCase()}
+                {input.organizationName.toUpperCase()}
               </Text>
             </View>
             <View style={styles.verifyBlock}>

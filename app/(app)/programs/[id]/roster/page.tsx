@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Eyebrow, Chip, Frame } from "@/components/brutalist";
 import { InviteForm } from "./invite-form";
 import { CsvImport } from "./csv-import";
+import { RevokeInviteButton, RemoveLearnerButton } from "./row-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -72,10 +73,19 @@ export default async function RosterPage({ params }: { params: { id: string } })
               <th className="num">ENROLLED</th>
             </tr>
           </thead>
+          <thead>
+            <tr>
+              <th>NAME</th>
+              <th>EMAIL</th>
+              <th className="num">STATUS</th>
+              <th className="num">ENROLLED</th>
+              <th className="num">ACTION</th>
+            </tr>
+          </thead>
           <tbody>
             {learners.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: "center", color: "var(--muted)" }}>
+                <td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>
                   No learners yet.
                 </td>
               </tr>
@@ -88,6 +98,13 @@ export default async function RosterPage({ params }: { params: { id: string } })
                     <Chip ghost>{l.status.toUpperCase()}</Chip>
                   </td>
                   <td className="num">{new Date(l.enrolled_at).toISOString().slice(0, 10)}</td>
+                  <td className="num">
+                    <RemoveLearnerButton
+                      learnerUserId={l.user_id}
+                      programId={program.id}
+                      learnerName={l.user?.display_name ?? l.user?.full_name ?? l.user?.email ?? "this learner"}
+                    />
+                  </td>
                 </tr>
               ))
             )}
@@ -137,6 +154,7 @@ export default async function RosterPage({ params }: { params: { id: string } })
                   <th>EMAIL</th>
                   <th className="num">ROLE</th>
                   <th className="num">EXPIRES</th>
+                  <th className="num">ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,6 +165,9 @@ export default async function RosterPage({ params }: { params: { id: string } })
                       <Chip ghost>{inv.role.toUpperCase()}</Chip>
                     </td>
                     <td className="num">{new Date(inv.expires_at).toISOString().slice(0, 10)}</td>
+                    <td className="num">
+                      <RevokeInviteButton inviteId={inv.id} programId={program.id} email={inv.email} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
