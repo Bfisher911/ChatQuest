@@ -22,6 +22,7 @@ const ROLE_NAVS: Record<UserRole, { label: string; href: string }[]> = {
     { label: "Dashboard", href: "/dashboard" },
     { label: "Chatrails", href: "/programs" },
     { label: "Seats", href: "/seats" },
+    { label: "Knowledge", href: "/kb" },
     { label: "Rubrics", href: "/rubrics" },
     { label: "Org", href: "/org/settings" },
   ],
