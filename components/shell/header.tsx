@@ -23,7 +23,7 @@ const ROLE_NAVS: Record<UserRole, { label: string; href: string }[]> = {
     { label: "Chatrails", href: "/programs" },
     { label: "Seats", href: "/seats" },
     { label: "Rubrics", href: "/rubrics" },
-    { label: "Cert Template", href: "/org/cert-template" },
+    { label: "Org", href: "/org/settings" },
   ],
   ta: [
     { label: "Dashboard", href: "/dashboard" },
@@ -39,6 +39,7 @@ const ROLE_NAVS: Record<UserRole, { label: string; href: string }[]> = {
     { label: "Chatrails", href: "/programs" },
     { label: "Seats", href: "/seats" },
     { label: "Members", href: "/org/members" },
+    { label: "Org", href: "/org/settings" },
     { label: "Billing", href: "/org/billing" },
   ],
   super_admin: [
