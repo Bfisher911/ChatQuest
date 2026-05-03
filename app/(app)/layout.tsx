@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Header } from "@/components/shell/header";
 import { Footer } from "@/components/shell/footer";
 import { getSessionUser } from "@/lib/auth/rbac";
+import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/db/types";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     : Array.from(new Set(user.memberships.map((m) => m.role)));
   const activeRole: UserRole = cookieRole && allowed.includes(cookieRole) ? cookieRole : user.activeRole;
 
+  // Unread notification count for the bell badge.
+  const supabase = createClient();
+  const { count: unread } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("is_read", false);
+
   return (
     <div className="cq-shell">
       <Header
@@ -25,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         activeRole={activeRole}
         memberships={user.memberships}
         isSuperAdmin={user.isSuperAdmin}
+        unreadNotifications={unread ?? 0}
       />
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
         {children}

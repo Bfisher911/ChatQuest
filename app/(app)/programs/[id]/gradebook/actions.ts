@@ -103,6 +103,35 @@ export async function saveGrade(formData: FormData) {
         grade.organization_id,
       );
     }
+
+    // Fire a learner notification (Phase T).
+    const { createNotification } = await import("@/lib/notifications/create");
+    const { createServiceRoleClient } = await import("@/lib/supabase/server");
+    const adm = createServiceRoleClient();
+    const { data: ctx } = await adm
+      .from("path_nodes")
+      .select("id, title, program_id, programs:programs(title)")
+      .eq("id", (await adm.from("grades").select("node_id").eq("id", parsed.data.gradeId).single()).data?.node_id)
+      .maybeSingle();
+    type CtxRow = { id: string; title: string; program_id: string; programs: { title: string }[] | { title: string } | null };
+    const c = ctx as unknown as CtxRow | null;
+    const programTitle = (() => {
+      const p = c?.programs;
+      if (!p) return "your Chatrail";
+      return Array.isArray(p) ? p[0]?.title ?? "your Chatrail" : p.title;
+    })();
+    const isReturned = parsed.data.status === "needs_revision";
+    await createNotification({
+      userId: grade.learner_id,
+      organizationId: grade.organization_id,
+      kind: "grade_returned",
+      title: isReturned
+        ? `Revision requested: ${c?.title ?? "your work"}`
+        : `Graded: ${c?.title ?? "your work"}`,
+      body: parsed.data.comment ?? null,
+      href: `/learn/${parsed.data.programId}/${c?.id}/grade`,
+      metadata: { programTitle, score: parsed.data.score, status: parsed.data.status },
+    });
   }
 
   revalidatePath(`/programs/${parsed.data.programId}/gradebook`);

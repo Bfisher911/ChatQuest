@@ -81,6 +81,30 @@ export async function inviteLearner(formData: FormData) {
           { onConflict: "program_id,user_id" },
         );
     }
+    // Fire an in-app notification — the existing user is added immediately.
+    const { data: program2 } = await admin
+      .from("programs")
+      .select("title")
+      .eq("id", program.id)
+      .single();
+    const { createNotification } = await import("@/lib/notifications/create");
+    await createNotification({
+      userId: existingUser.id,
+      organizationId: program.organization_id,
+      kind: "invite_received",
+      title:
+        parsed.data.role === "learner"
+          ? `Added to Chatrail: ${program2?.title ?? "(untitled)"}`
+          : `Added as ${parsed.data.role.toUpperCase()} to: ${program2?.title ?? "(untitled)"}`,
+      body: parsed.data.role === "learner"
+        ? "You can start the journey now."
+        : "You can edit + grade in this Chatrail.",
+      href:
+        parsed.data.role === "learner"
+          ? `/learn/${program.id}`
+          : `/programs/${program.id}`,
+    });
+
     revalidatePath(`/programs/${program.id}/roster`);
     return { ok: true as const, addedExistingUser: true };
   }

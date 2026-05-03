@@ -14,6 +14,7 @@ export interface HeaderProps {
   activeRole: UserRole;
   memberships: { organizationId: string; organizationName: string; role: UserRole }[];
   isSuperAdmin: boolean;
+  unreadNotifications?: number;
 }
 
 const ROLE_NAVS: Record<UserRole, { label: string; href: string }[]> = {
@@ -54,6 +55,7 @@ export function Header({
   activeRole,
   memberships,
   isSuperAdmin,
+  unreadNotifications = 0,
 }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -104,6 +106,42 @@ export function Header({
             ))}
           </select>
         ) : null}
+        <Link
+          href="/notifications"
+          title={
+            unreadNotifications > 0
+              ? `${unreadNotifications} unread notification${unreadNotifications === 1 ? "" : "s"}`
+              : "Notifications"
+          }
+          aria-label="Notifications"
+          className="cq-icon-btn"
+          style={{ position: "relative" }}
+        >
+          <Icon name="bell" />
+          {unreadNotifications > 0 ? (
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                top: -6,
+                right: -6,
+                minWidth: 18,
+                height: 18,
+                padding: "0 4px",
+                borderRadius: 0,
+                background: "var(--ink)",
+                color: "var(--paper)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                lineHeight: "18px",
+                textAlign: "center",
+                border: "2px solid var(--paper)",
+              }}
+            >
+              {unreadNotifications > 99 ? "99+" : unreadNotifications}
+            </span>
+          ) : null}
+        </Link>
         <Link
           href="/account"
           title={`Signed in as ${displayName} — open account`}

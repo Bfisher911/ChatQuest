@@ -367,8 +367,24 @@ export async function maybeAwardCertificates(
       })
       .select("id, verification_code")
       .single();
-    if (award) awarded.push(award.id);
-    // Email send is wired in the cert PDF route once the file is materialized.
+    if (award) {
+      awarded.push(award.id);
+      // Fire learner notification (Phase T).
+      const { createNotification } = await import("@/lib/notifications/create");
+      await createNotification({
+        userId: learnerId,
+        organizationId,
+        kind: "cert_awarded",
+        title: `Certificate awarded: ${cert.title}`,
+        body: "Open it to download the PDF or share the verification link.",
+        href: "/learn/certificates",
+        metadata: {
+          certificate_id: cert.id,
+          award_id: award.id,
+          verification_code: award.verification_code,
+        },
+      });
+    }
   }
 
   return { awarded };
