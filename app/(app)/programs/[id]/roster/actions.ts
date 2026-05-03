@@ -190,6 +190,218 @@ export async function removeLearnerFromProgram(learnerUserId: string, programId:
 }
 
 const csvSchema = z.object({ programId: z.string().uuid(), csv: z.string().min(1) });
+
+// ─────────── Phase U — CSV preview + commit ───────────
+//
+// Two-step flow so creators see exactly which rows will be processed (and
+// which will fail) BEFORE anything is written. Preview is pure parse +
+// validation; commit calls the same per-row invite path.
+
+export type CsvRowStatus = "valid" | "duplicate" | "invalid_email" | "missing_email";
+
+export interface CsvPreviewRow {
+  index: number;
+  email: string;
+  fullName: string | null;
+  role: "learner" | "ta" | "instructor";
+  status: CsvRowStatus;
+  reason?: string;
+  /** True if a user with this email already exists in the org (will be added directly, not emailed). */
+  existingMember?: boolean;
+}
+
+const previewSchema = z.object({
+  programId: z.string().uuid(),
+  csv: z.string().min(1),
+});
+
+/**
+ * Parse a CSV (header optional) into validated rows without writing anything.
+ *
+ * Accepted columns (in any order, with or without a header line):
+ *   email, name (optional), role (optional — defaults to learner)
+ *
+ * If no header line, columns are positional: email, name, role.
+ */
+export async function previewCsvImport(input: z.infer<typeof previewSchema>) {
+  const session = await getActiveRole();
+  if (!session?.activeOrganizationId) return { ok: false as const, error: "No active organization" };
+  const parsed = previewSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const admin = createServiceRoleClient();
+  // Active members of the program's org — used to mark "duplicate" rows in preview.
+  const { data: program } = await admin
+    .from("programs")
+    .select("organization_id")
+    .eq("id", parsed.data.programId)
+    .single();
+  if (!program) return { ok: false as const, error: "Chatrail not found" };
+  if (program.organization_id !== session.activeOrganizationId && !session.user.isSuperAdmin) {
+    return { ok: false as const, error: "Wrong organization." };
+  }
+
+  const { data: existingUsers } = await admin
+    .from("organization_members")
+    .select("user:users(email)")
+    .eq("organization_id", program.organization_id)
+    .eq("is_active", true);
+  type MemberRow = { user: { email: string } | { email: string }[] | null };
+  const memberEmails = new Set<string>();
+  for (const m of (existingUsers ?? []) as unknown as MemberRow[]) {
+    const u = Array.isArray(m.user) ? m.user[0] : m.user;
+    if (u?.email) memberEmails.add(u.email.toLowerCase());
+  }
+
+  // Already-pending invites for this program — also "duplicate".
+  const { data: pendingInvites } = await admin
+    .from("invites")
+    .select("email")
+    .eq("program_id", parsed.data.programId)
+    .eq("status", "pending");
+  const pendingEmails = new Set<string>(
+    (pendingInvites ?? []).map((i) => i.email.toLowerCase()),
+  );
+
+  const lines = parsed.data.csv
+    .split(/\r?\n/g)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) {
+    return { ok: true as const, rows: [], duplicates: 0 };
+  }
+
+  // Detect a header row.
+  const header = lines[0]
+    .split(",")
+    .map((c) => c.trim().toLowerCase().replace(/^"|"$/g, ""));
+  const hasHeader = header.includes("email");
+  const colIndex = (name: string) => header.indexOf(name);
+  const emailCol = hasHeader ? colIndex("email") : 0;
+  const nameCol = hasHeader ? colIndex("name") : 1;
+  const roleCol = hasHeader ? colIndex("role") : 2;
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+
+  const seenInBatch = new Set<string>();
+  const rows: CsvPreviewRow[] = [];
+  let dupCount = 0;
+  dataLines.forEach((line, i) => {
+    const cells = parseCsvLine(line);
+    const rawEmail = (cells[emailCol] ?? "").trim().replace(/^"|"$/g, "");
+    const rawName = nameCol >= 0 && nameCol < cells.length ? cells[nameCol].trim().replace(/^"|"$/g, "") : "";
+    const rawRole = roleCol >= 0 && roleCol < cells.length ? cells[roleCol].trim().toLowerCase().replace(/^"|"$/g, "") : "learner";
+    const role: "learner" | "ta" | "instructor" =
+      rawRole === "ta" || rawRole === "instructor" ? rawRole : "learner";
+
+    if (!rawEmail) {
+      rows.push({ index: i, email: "", fullName: rawName || null, role, status: "missing_email" });
+      return;
+    }
+    if (!isValidEmail(rawEmail)) {
+      rows.push({ index: i, email: rawEmail, fullName: rawName || null, role, status: "invalid_email" });
+      return;
+    }
+    const lower = rawEmail.toLowerCase();
+    if (seenInBatch.has(lower) || memberEmails.has(lower) || pendingEmails.has(lower)) {
+      dupCount++;
+      rows.push({
+        index: i,
+        email: rawEmail,
+        fullName: rawName || null,
+        role,
+        status: "duplicate",
+        reason: memberEmails.has(lower) ? "already a member" : pendingEmails.has(lower) ? "already invited" : "duplicate in CSV",
+        existingMember: memberEmails.has(lower),
+      });
+      return;
+    }
+    seenInBatch.add(lower);
+    rows.push({
+      index: i,
+      email: rawEmail,
+      fullName: rawName || null,
+      role,
+      status: "valid",
+      existingMember: false,
+    });
+  });
+
+  return { ok: true as const, rows, duplicates: dupCount };
+}
+
+const commitSchema = z.object({
+  programId: z.string().uuid(),
+  rows: z.array(
+    z.object({
+      email: z.string().email(),
+      fullName: z.string().nullable().optional(),
+      role: z.enum(["learner", "ta", "instructor"]),
+    }),
+  ),
+});
+
+export async function commitCsvImport(input: z.infer<typeof commitSchema>) {
+  const session = await getActiveRole();
+  if (!session?.activeOrganizationId) return { ok: false as const, error: "No active organization" };
+  const parsed = commitSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  let added = 0;
+  let errors = 0;
+  const errorsList: { email: string; reason: string }[] = [];
+
+  for (const row of parsed.data.rows) {
+    const fd = new FormData();
+    fd.set("programId", parsed.data.programId);
+    fd.set("email", row.email);
+    fd.set("role", row.role);
+    const res = await inviteLearner(fd);
+    if (res.ok) {
+      added++;
+    } else {
+      errors++;
+      errorsList.push({ email: row.email, reason: res.error });
+    }
+  }
+  return { ok: true as const, added, errors, errorsList };
+}
+
+function parseCsvLine(line: string): string[] {
+  // Minimal CSV parser — handles quoted fields with commas inside.
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else {
+      if (ch === ',') {
+        out.push(cur);
+        cur = "";
+      } else if (ch === '"') {
+        inQuotes = true;
+      } else {
+        cur += ch;
+      }
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function isValidEmail(s: string): boolean {
+  // Pragmatic — covers typical input without overreaching.
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
 export async function inviteCsv(formData: FormData) {
   const session = await getActiveRole();
   if (!session?.activeOrganizationId) return { ok: false as const, error: "No active organization" };
