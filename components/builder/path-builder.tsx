@@ -58,6 +58,28 @@ interface PathEdgeMin {
   condition: Record<string, unknown> | null;
 }
 
+export interface RubricMin {
+  id: string;
+  name: string;
+  total_points: number | null;
+}
+
+export interface BotConfigMin {
+  node_id: string;
+  system_prompt: string | null;
+  learner_instructions: string | null;
+  model: string | null;
+  temperature: string | number | null;
+  token_budget: number | null;
+  max_tokens: number | null;
+  attempts_allowed: number | null;
+  rubric_id: string | null;
+  conversation_goal: string | null;
+  completion_criteria: string | null;
+  ai_grading_enabled: boolean | null;
+  allow_retry_after_feedback: boolean | null;
+}
+
 const NODE_PALETTE: { type: NodeType; label: string; icon: import("@/components/brutalist").IconName }[] = [
   { type: "bot", label: "Chatbot", icon: "bot" },
   { type: "content", label: "Content", icon: "file" },
@@ -106,14 +128,24 @@ export function PathBuilder({
   programId,
   initialNodes,
   initialEdges,
+  rubrics = [],
+  botConfigs = [],
 }: {
   programId: string;
   initialNodes: PathNodeMin[];
   initialEdges: PathEdgeMin[];
+  rubrics?: RubricMin[];
+  botConfigs?: BotConfigMin[];
 }) {
   return (
     <ReactFlowProvider>
-      <PathBuilderInner programId={programId} initialNodes={initialNodes} initialEdges={initialEdges} />
+      <PathBuilderInner
+        programId={programId}
+        initialNodes={initialNodes}
+        initialEdges={initialEdges}
+        rubrics={rubrics}
+        botConfigs={botConfigs}
+      />
     </ReactFlowProvider>
   );
 }
@@ -122,10 +154,14 @@ function PathBuilderInner({
   programId,
   initialNodes,
   initialEdges,
+  rubrics,
+  botConfigs,
 }: {
   programId: string;
   initialNodes: PathNodeMin[];
   initialEdges: PathEdgeMin[];
+  rubrics: RubricMin[];
+  botConfigs: BotConfigMin[];
 }) {
   const router = useRouter();
   const reactFlow = useReactFlow();
@@ -276,6 +312,8 @@ function PathBuilderInner({
         {selectedNode ? (
           <TypedNodeInspector
             programId={programId}
+            rubrics={rubrics}
+            botConfig={botConfigs.find((b) => b.node_id === selectedNode.id) ?? null}
             node={{
               id: selectedNode.id,
               type: selectedNode.type,

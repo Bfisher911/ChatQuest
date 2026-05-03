@@ -11,8 +11,9 @@ import {
   deleteNodeFile,
   upsertCertForNode,
 } from "@/lib/path/file-actions";
-import { updateNode, deleteNode } from "@/lib/path/actions";
+import { updateNode, deleteNode, updateBotConfig } from "@/lib/path/actions";
 import { RichTextEditor } from "@/components/brutalist/rich-text";
+import Link from "next/link";
 
 // ───────── shared types ─────────
 
@@ -33,12 +34,38 @@ export interface SiblingNode {
   display_order: number;
 }
 
+export interface RubricChoice {
+  id: string;
+  name: string;
+  total_points: number | null;
+}
+
+export interface BotConfigData {
+  node_id: string;
+  system_prompt: string | null;
+  learner_instructions: string | null;
+  model: string | null;
+  temperature: string | number | null;
+  token_budget: number | null;
+  max_tokens: number | null;
+  attempts_allowed: number | null;
+  rubric_id: string | null;
+  conversation_goal: string | null;
+  completion_criteria: string | null;
+  ai_grading_enabled: boolean | null;
+  allow_retry_after_feedback: boolean | null;
+}
+
 export interface InspectorProps {
   programId: string;
   node: NodeData;
   siblings: SiblingNode[];
   onChange: () => void;
   onDelete: () => void;
+  /** Org rubrics — only required for the BotInspector. */
+  rubrics?: RubricChoice[];
+  /** Existing bot config row — only required for the BotInspector. */
+  botConfig?: BotConfigData | null;
 }
 
 // ───────── shared shell ─────────
@@ -76,11 +103,8 @@ function InspectorShell({
             {pending ? "SAVING…" : "SAVE"} <Icon name="check" />
           </Btn>
         ) : null}
-        {node.type === "bot" ? (
-          <Btn sm ghost asChild>
-            <a href={`/programs/${programId}/nodes/${node.id}`}>BOT EDITOR <Icon name="arrow" /></a>
-          </Btn>
-        ) : null}
+        {/* Bot inspector is now fully inline — the standalone bot editor
+            stays as a deep link for power users who want a wider canvas. */}
       </div>
       <div style={{ marginTop: 16 }}>
         <Btn sm ghost onClick={onDelete}>
@@ -147,25 +171,88 @@ export function BotInspector(props: InspectorProps) {
   const router = useRouter();
   const [pending, setPending] = React.useState(false);
   const [title, setTitle] = React.useState(props.node.title);
-  const [points, setPoints] = React.useState(String(props.node.points ?? 0));
+  const [points, setPoints] = React.useState(String(props.node.points ?? 25));
   const [isRequired, setIsRequired] = React.useState(props.node.is_required);
+
+  const cfg = props.botConfig;
+  const rubrics = props.rubrics ?? [];
+
+  const [systemPrompt, setSystemPrompt] = React.useState(
+    cfg?.system_prompt ?? "You are a helpful tutor. Probe assumptions; demand citations from the program knowledge base.",
+  );
+  const [learnerInstructions, setLearnerInstructions] = React.useState(cfg?.learner_instructions ?? "");
+  const [model, setModel] = React.useState(cfg?.model ?? "claude-haiku-4-5");
+  const [temperature, setTemperature] = React.useState(String(cfg?.temperature ?? 0.4));
+  const [tokenBudget, setTokenBudget] = React.useState(String(cfg?.token_budget ?? 8000));
+  const [maxTokens, setMaxTokens] = React.useState(String(cfg?.max_tokens ?? 1024));
+  const [attempts, setAttempts] = React.useState(String(cfg?.attempts_allowed ?? 2));
+  const [rubricId, setRubricId] = React.useState(cfg?.rubric_id ?? "");
+  const [conversationGoal, setConversationGoal] = React.useState(cfg?.conversation_goal ?? "");
+  const [completionCriteria, setCompletionCriteria] = React.useState(cfg?.completion_criteria ?? "");
+  const [aiGradingEnabled, setAiGradingEnabled] = React.useState(cfg?.ai_grading_enabled ?? true);
+  const [allowRetry, setAllowRetry] = React.useState(cfg?.allow_retry_after_feedback ?? true);
+
+  // Re-sync state when the inspector switches to a different bot node.
+  React.useEffect(() => {
+    setTitle(props.node.title);
+    setPoints(String(props.node.points ?? 25));
+    setIsRequired(props.node.is_required);
+    setSystemPrompt(cfg?.system_prompt ?? "You are a helpful tutor. Probe assumptions; demand citations from the program knowledge base.");
+    setLearnerInstructions(cfg?.learner_instructions ?? "");
+    setModel(cfg?.model ?? "claude-haiku-4-5");
+    setTemperature(String(cfg?.temperature ?? 0.4));
+    setTokenBudget(String(cfg?.token_budget ?? 8000));
+    setMaxTokens(String(cfg?.max_tokens ?? 1024));
+    setAttempts(String(cfg?.attempts_allowed ?? 2));
+    setRubricId(cfg?.rubric_id ?? "");
+    setConversationGoal(cfg?.conversation_goal ?? "");
+    setCompletionCriteria(cfg?.completion_criteria ?? "");
+    setAiGradingEnabled(cfg?.ai_grading_enabled ?? true);
+    setAllowRetry(cfg?.allow_retry_after_feedback ?? true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.node.id]);
 
   async function save() {
     setPending(true);
-    const res = await updateNode({
-      nodeId: props.node.id,
-      programId: props.programId,
-      title,
-      points: Number(points),
-      isRequired,
-    });
+    // Save the node-level bits (title / points / required) AND the bot
+    // config row in parallel.
+    const [nodeRes, cfgRes] = await Promise.all([
+      updateNode({
+        nodeId: props.node.id,
+        programId: props.programId,
+        title,
+        points: Number(points),
+        isRequired,
+      }),
+      updateBotConfig({
+        nodeId: props.node.id,
+        programId: props.programId,
+        systemPrompt,
+        learnerInstructions: learnerInstructions || null,
+        model,
+        temperature: Number(temperature),
+        tokenBudget: Number(tokenBudget),
+        maxTokens: Number(maxTokens),
+        attemptsAllowed: Number(attempts),
+        rubricId: rubricId || null,
+        conversationGoal: conversationGoal || null,
+        completionCriteria: completionCriteria || null,
+        aiGradingEnabled,
+        allowRetryAfterFeedback: allowRetry,
+      }),
+    ]);
     setPending(false);
-    if (!res.ok) toast.error(res.error);
-    else {
-      toast.success("Saved.");
-      props.onChange();
-      router.refresh();
+    if (!nodeRes.ok) {
+      toast.error(nodeRes.error);
+      return;
     }
+    if (!cfgRes.ok) {
+      toast.error(cfgRes.error);
+      return;
+    }
+    toast.success("Bot saved.");
+    props.onChange();
+    router.refresh();
   }
 
   return (
@@ -184,12 +271,181 @@ export function BotInspector(props: InspectorProps) {
         isRequired={isRequired}
         setIsRequired={setIsRequired}
       />
-      <div
-        className="cq-mono"
-        style={{ fontSize: 12, color: "var(--muted)", marginTop: 12, lineHeight: 1.5 }}
-      >
-        Edit the bot&apos;s system prompt, model, attempts, and rubric in the
-        dedicated bot editor.
+
+      <div className="cq-field" style={{ marginTop: 12 }}>
+        <label>Learner-facing instructions</label>
+        <textarea
+          className="cq-textarea"
+          value={learnerInstructions}
+          onChange={(e) => setLearnerInstructions(e.target.value)}
+          placeholder="What the learner should accomplish."
+          rows={3}
+        />
+      </div>
+
+      <div className="cq-field">
+        <label>System prompt</label>
+        <textarea
+          className="cq-textarea"
+          value={systemPrompt}
+          onChange={(e) => setSystemPrompt(e.target.value)}
+          rows={6}
+        />
+      </div>
+
+      <div className="cq-grid cq-grid--2" style={{ gap: 12 }}>
+        <div className="cq-field">
+          <label>Model</label>
+          <select
+            className="cq-select"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          >
+            <optgroup label="Anthropic">
+              <option value="claude-haiku-4-5">claude-haiku-4-5</option>
+              <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
+              <option value="claude-opus-4-7">claude-opus-4-7</option>
+              <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
+              <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest</option>
+            </optgroup>
+            <optgroup label="OpenAI">
+              <option value="gpt-4o-mini">gpt-4o-mini</option>
+              <option value="gpt-4o">gpt-4o</option>
+              <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+              <option value="gpt-4.1">gpt-4.1</option>
+            </optgroup>
+            <optgroup label="Google Gemini">
+              <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+              <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+            </optgroup>
+          </select>
+        </div>
+        <div className="cq-field">
+          <label>Temp</label>
+          <input
+            type="number"
+            step="0.05"
+            min={0}
+            max={1}
+            className="cq-input"
+            value={temperature}
+            onChange={(e) => setTemperature(e.target.value)}
+          />
+        </div>
+        <div className="cq-field">
+          <label>Token budget</label>
+          <input
+            type="number"
+            min={500}
+            className="cq-input"
+            value={tokenBudget}
+            onChange={(e) => setTokenBudget(e.target.value)}
+          />
+        </div>
+        <div className="cq-field">
+          <label>Max tokens / reply</label>
+          <input
+            type="number"
+            min={64}
+            className="cq-input"
+            value={maxTokens}
+            onChange={(e) => setMaxTokens(e.target.value)}
+          />
+        </div>
+        <div className="cq-field">
+          <label>Attempts</label>
+          <input
+            type="number"
+            min={1}
+            className="cq-input"
+            value={attempts}
+            onChange={(e) => setAttempts(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="cq-field">
+        <label>Rubric (for AI grading)</label>
+        <select
+          className="cq-select"
+          value={rubricId}
+          onChange={(e) => setRubricId(e.target.value)}
+        >
+          <option value="">— None —</option>
+          {rubrics.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name} ({r.total_points ?? 0} pts)
+            </option>
+          ))}
+        </select>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+          {rubrics.length === 0 ? (
+            <>
+              No rubrics yet.{" "}
+              <Link href="/rubrics/new" style={{ textDecoration: "underline" }}>
+                Create one
+              </Link>{" "}
+              for AI-suggested scores.
+            </>
+          ) : (
+            <>
+              Manage at{" "}
+              <Link href="/rubrics" style={{ textDecoration: "underline" }}>
+                /rubrics
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="cq-field">
+        <label>Conversation goal (optional)</label>
+        <input
+          className="cq-input"
+          value={conversationGoal}
+          onChange={(e) => setConversationGoal(e.target.value)}
+          placeholder="What the learner should walk away knowing."
+        />
+      </div>
+
+      <div className="cq-field">
+        <label>Completion criteria (optional)</label>
+        <input
+          className="cq-input"
+          value={completionCriteria}
+          onChange={(e) => setCompletionCriteria(e.target.value)}
+          placeholder="What 'done' looks like in this conversation."
+        />
+      </div>
+
+      <div className="cq-field">
+        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" checked={aiGradingEnabled} onChange={(e) => setAiGradingEnabled(e.target.checked)} />
+          <span>AI grading suggestion (instructor still has the final say)</span>
+        </label>
+      </div>
+
+      <div className="cq-field">
+        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" checked={allowRetry} onChange={(e) => setAllowRetry(e.target.checked)} />
+          <span>Allow retry after &quot;needs revision&quot;</span>
+        </label>
+      </div>
+
+      <div style={{ marginTop: 4 }}>
+        <Link
+          href={`/programs/${props.programId}/nodes/${props.node.id}`}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--muted)",
+            textDecoration: "underline",
+          }}
+        >
+          Open in standalone bot editor →
+        </Link>
       </div>
     </InspectorShell>
   );

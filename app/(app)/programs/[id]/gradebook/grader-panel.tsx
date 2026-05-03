@@ -110,6 +110,9 @@ export function GraderPanel({
     fd.set("score", score);
     fd.set("maxScore", String(maxScore));
     fd.set("comment", comment);
+    if (perCriterion.length > 0) {
+      fd.set("perCriterion", JSON.stringify(perCriterion));
+    }
     const res = await saveGrade(fd);
     setPending(false);
     if (!res.ok) {

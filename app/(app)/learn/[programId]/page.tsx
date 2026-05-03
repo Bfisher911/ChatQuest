@@ -242,7 +242,7 @@ export default async function LearnerJourney({ params }: { params: { programId: 
                 </div>
               ) : null}
 
-              <div style={{ marginTop: "auto", display: "flex", gap: 6 }}>
+              <div style={{ marginTop: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {isLocked ? (
                   <Btn sm ghost disabled>
                     <Icon name="lock" /> LOCKED
@@ -254,6 +254,11 @@ export default async function LearnerJourney({ params }: { params: { programId: 
                     </Link>
                   </Btn>
                 )}
+                {(isDone || isFailed) && n.type === "bot" ? (
+                  <Btn sm ghost asChild>
+                    <Link href={`/learn/${program.id}/${n.id}/grade`}>VIEW GRADE</Link>
+                  </Btn>
+                ) : null}
               </div>
             </div>
           );

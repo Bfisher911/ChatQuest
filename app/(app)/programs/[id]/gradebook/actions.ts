@@ -5,6 +5,14 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireSessionUser } from "@/lib/auth/rbac";
 
+const perCriterionSchema = z.array(
+  z.object({
+    criterion_id: z.string().uuid(),
+    score: z.coerce.number().nonnegative(),
+    rationale: z.string().optional().nullable(),
+  }),
+);
+
 const saveGradeSchema = z.object({
   gradeId: z.string().uuid(),
   programId: z.string().uuid(),
@@ -12,10 +20,13 @@ const saveGradeSchema = z.object({
   score: z.coerce.number().nonnegative().nullable(),
   maxScore: z.coerce.number().nonnegative().nullable(),
   comment: z.string().optional().nullable(),
+  /** JSON-encoded per-criterion array (criterion_id, score, rationale). */
+  perCriterion: z.string().optional().nullable(),
 });
 
 export async function saveGrade(formData: FormData) {
   const user = await requireSessionUser();
+  const rawPerCrit = formData.get("perCriterion");
   const parsed = saveGradeSchema.safeParse({
     gradeId: formData.get("gradeId"),
     programId: formData.get("programId"),
@@ -23,6 +34,7 @@ export async function saveGrade(formData: FormData) {
     score: formData.get("score") || null,
     maxScore: formData.get("maxScore") || null,
     comment: formData.get("comment") || null,
+    perCriterion: typeof rawPerCrit === "string" ? rawPerCrit : null,
   });
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
@@ -45,6 +57,28 @@ export async function saveGrade(formData: FormData) {
     })
     .eq("id", parsed.data.gradeId);
   if (gradeErr) return { ok: false as const, error: gradeErr.message };
+
+  // Persist per-criterion rubric scores so learners can see the breakdown.
+  if (parsed.data.perCriterion) {
+    try {
+      const arr = perCriterionSchema.parse(JSON.parse(parsed.data.perCriterion));
+      if (arr.length > 0) {
+        // Wipe + re-insert (small N; simpler than per-row upsert + cleanup).
+        await supabase.from("rubric_scores").delete().eq("grade_id", parsed.data.gradeId);
+        await supabase.from("rubric_scores").insert(
+          arr.map((s) => ({
+            grade_id: parsed.data.gradeId,
+            criterion_id: s.criterion_id,
+            score: s.score,
+            comment: s.rationale ?? null,
+          })),
+        );
+      }
+    } catch (err) {
+      // Don't fail the save on bad per-criterion data — the grade itself is in.
+      console.error("[saveGrade] per-criterion parse failed:", err);
+    }
+  }
 
   // Mirror grade status on the conversation + auto-award certificates.
   const { data: grade } = await supabase

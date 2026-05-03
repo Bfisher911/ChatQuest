@@ -120,6 +120,59 @@ export async function deleteNode(nodeId: string, programId: string) {
   return { ok: true as const };
 }
 
+// ─────────── Bot config inline editing (used by the builder inspector) ───────────
+
+const updateBotConfigSchema = z.object({
+  nodeId: z.string().uuid(),
+  programId: z.string().uuid(),
+  systemPrompt: z.string().min(1),
+  learnerInstructions: z.string().optional().nullable(),
+  model: z.string().min(1),
+  temperature: z.coerce.number().min(0).max(2),
+  tokenBudget: z.coerce.number().int().min(500),
+  maxTokens: z.coerce.number().int().min(64),
+  attemptsAllowed: z.coerce.number().int().min(1),
+  rubricId: z.string().uuid().nullable().optional(),
+  conversationGoal: z.string().optional().nullable(),
+  completionCriteria: z.string().optional().nullable(),
+  aiGradingEnabled: z.coerce.boolean().default(true),
+  allowRetryAfterFeedback: z.coerce.boolean().default(true),
+});
+
+export async function updateBotConfig(input: z.infer<typeof updateBotConfigSchema>) {
+  await requireSessionUser();
+  const parsed = updateBotConfigSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const supabase = createClient();
+  // Upsert by node_id — covers the rare case where a bot node was created
+  // outside the standard flow and has no chatbot_configs row yet.
+  const { error } = await supabase
+    .from("chatbot_configs")
+    .upsert(
+      {
+        node_id: parsed.data.nodeId,
+        system_prompt: parsed.data.systemPrompt,
+        learner_instructions: parsed.data.learnerInstructions ?? null,
+        model: parsed.data.model,
+        temperature: String(parsed.data.temperature),
+        token_budget: parsed.data.tokenBudget,
+        max_tokens: parsed.data.maxTokens,
+        attempts_allowed: parsed.data.attemptsAllowed,
+        rubric_id: parsed.data.rubricId ?? null,
+        conversation_goal: parsed.data.conversationGoal ?? null,
+        completion_criteria: parsed.data.completionCriteria ?? null,
+        ai_grading_enabled: parsed.data.aiGradingEnabled,
+        allow_retry_after_feedback: parsed.data.allowRetryAfterFeedback,
+      },
+      { onConflict: "node_id" },
+    );
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/programs/${parsed.data.programId}/builder`);
+  return { ok: true as const };
+}
+
 // ─────────── Edge CRUD ───────────
 
 const edgeSchema = z.object({
