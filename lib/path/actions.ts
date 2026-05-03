@@ -173,6 +173,37 @@ export async function updateBotConfig(input: z.infer<typeof updateBotConfigSchem
   return { ok: true as const };
 }
 
+// ─────────── Chatrail publish / unpublish / archive ───────────
+
+const setStatusSchema = z.object({
+  programId: z.string().uuid(),
+  status: z.enum(["draft", "published", "archived"]),
+});
+
+export async function setProgramStatus(input: z.infer<typeof setStatusSchema>) {
+  const session = await getActiveRole();
+  if (!session) return { ok: false as const, error: "Not signed in" };
+  if (!["instructor", "org_admin", "super_admin"].includes(session.activeRole)) {
+    return { ok: false as const, error: "Only Creators can change Chatrail status." };
+  }
+  const parsed = setStatusSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("programs")
+    .update({ status: parsed.data.status })
+    .eq("id", parsed.data.programId);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/programs/${parsed.data.programId}`);
+  revalidatePath("/programs");
+  revalidatePath("/learn");
+  revalidatePath(`/learn/${parsed.data.programId}`);
+  revalidatePath("/dashboard");
+  return { ok: true as const, status: parsed.data.status };
+}
+
 // ─────────── Duplicate a single node within its Chatrail ───────────
 
 /**

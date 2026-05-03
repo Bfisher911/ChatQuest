@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Cassette, Eyebrow, Btn, Icon, Chip, Frame } from "@/components/brutalist";
 import { bin } from "@/lib/utils/binary";
 import { DuplicateChatrailButton } from "./duplicate-button";
+import { ProgramStatusControls } from "./status-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -41,11 +42,52 @@ export default async function ProgramOverview({ params }: { params: { id: string
     { k: "MODEL", v: (program.default_model ?? "—").toUpperCase() },
   ];
 
+  const status = (program.status as "draft" | "published" | "archived") ?? "draft";
+
   return (
     <div className="cq-page">
+      {status === "draft" ? (
+        <Frame
+          style={{
+            padding: 16,
+            marginBottom: 16,
+            background: "var(--soft)",
+          }}
+        >
+          <div className="row" style={{ gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <Chip ghost>DRAFT MODE</Chip>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>
+              Only you and your team can see this Chatrail. Click PUBLISH below
+              when ready for learners.
+            </span>
+            {(nodes?.length ?? 0) === 0 ? (
+              <span className="cq-mono" style={{ fontSize: 11, marginLeft: "auto", color: "var(--ink)" }}>
+                ■ ADD AT LEAST ONE NODE FIRST
+              </span>
+            ) : null}
+          </div>
+        </Frame>
+      ) : status === "archived" ? (
+        <Frame style={{ padding: 16, marginBottom: 16 }}>
+          <div className="row" style={{ gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <Chip ghost>ARCHIVED</Chip>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>
+              Learners can no longer enter. You can still read existing conversations + grades.
+            </span>
+          </div>
+        </Frame>
+      ) : null}
+
       <Frame style={{ padding: 28, marginBottom: 24 }}>
-        <Eyebrow>CHATRAIL · {bin(1, 8)}</Eyebrow>
-        <h1 className="cq-title-l" style={{ marginTop: 12, marginBottom: 8 }}>
+        <div className="row-between" style={{ marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
+          <Eyebrow>CHATRAIL · {bin(1, 8)}</Eyebrow>
+          <ProgramStatusControls
+            programId={program.id}
+            status={status}
+            nodeCount={nodes?.length ?? 0}
+          />
+        </div>
+        <h1 className="cq-title-l" style={{ marginTop: 0, marginBottom: 8 }}>
           {program.title.toUpperCase()}
         </h1>
         {program.description ? (

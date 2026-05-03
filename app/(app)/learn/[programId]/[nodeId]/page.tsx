@@ -1,9 +1,11 @@
 import * as React from "react";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { getActiveRole } from "@/lib/auth/active-role";
 import { startConversation } from "../../actions";
 import { ChatScreen } from "@/components/chat/chat-screen";
+import { Eyebrow, Btn, Icon } from "@/components/brutalist";
 import {
   ContentNodeView,
   PdfNodeView,
@@ -25,10 +27,43 @@ export default async function LearnNodePage({
 
   const { data: program } = await supabase
     .from("programs")
-    .select("id, title, organization_id")
+    .select("id, title, status, organization_id")
     .eq("id", params.programId)
     .maybeSingle();
   if (!program) notFound();
+
+  // Guard: learners only enter published Chatrails. Staff (instructor / TA /
+  // org admin in the program's org, or super admin) bypass so they can
+  // preview drafts and review archived ones.
+  const isStaff =
+    session.user.isSuperAdmin ||
+    session.user.memberships.some(
+      (m) =>
+        m.organizationId === program.organization_id &&
+        (m.role === "instructor" || m.role === "ta" || m.role === "org_admin"),
+    );
+  if (!isStaff && program.status !== "published") {
+    return (
+      <div className="cq-page" style={{ maxWidth: 720 }}>
+        <Eyebrow>NOT YET AVAILABLE</Eyebrow>
+        <h1 className="cq-title-l" style={{ marginTop: 12, marginBottom: 16 }}>
+          {program.title.toUpperCase()}
+        </h1>
+        <p style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>
+          {program.status === "draft"
+            ? "Your instructor is still building this Chatrail. Check back once it's published."
+            : "This Chatrail has been archived. Reach out to your instructor if you need access."}
+        </p>
+        <div style={{ marginTop: 16 }}>
+          <Btn ghost asChild>
+            <Link href="/learn">
+              <Icon name="arrow" style={{ transform: "rotate(180deg)" }} /> MY CHATRAILS
+            </Link>
+          </Btn>
+        </div>
+      </div>
+    );
+  }
 
   const { data: node } = await supabase
     .from("path_nodes")
