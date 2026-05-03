@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Cassette, CassetteStats, CassetteChips, Chip, Eyebrow, Icon, IconBtn, Btn } from "@/components/brutalist";
 import { bin } from "@/lib/utils/binary";
 import { OnboardingChecklist, type ChecklistItemSpec } from "@/components/dashboard/onboarding-checklist";
+import { relativeTime } from "@/lib/utils/relative-time";
 
 type Supabase = ReturnType<typeof import("@/lib/supabase/server").createClient>;
 
@@ -45,6 +46,26 @@ export async function InstructorDashboard({
     .eq("status", "submitted")
     .in("program_id", programIds.length ? programIds : ["00000000-0000-0000-0000-000000000000"]);
 
+  // Completion data: graded submissions per program (used to compute % done).
+  const { data: gradedRows } = await supabase
+    .from("grades")
+    .select("program_id, status")
+    .in("program_id", programIds.length ? programIds : ["00000000-0000-0000-0000-000000000000"])
+    .in("status", ["graded", "completed"]);
+
+  // Most-recent activity per program — used to surface stale Chatrails.
+  const { data: lastActivityRows } = await supabase
+    .from("conversations")
+    .select("program_id, updated_at")
+    .in("program_id", programIds.length ? programIds : ["00000000-0000-0000-0000-000000000000"])
+    .order("updated_at", { ascending: false });
+
+  // Cert awards per program — finally wires the CERTIFICATES stat for real.
+  const { data: certRows } = await supabase
+    .from("certificate_awards")
+    .select("program_id")
+    .in("program_id", programIds.length ? programIds : ["00000000-0000-0000-0000-000000000000"]);
+
   // Aggregate
   const enrollByProgram = new Map<string, number>();
   for (const e of enrollmentCounts ?? []) {
@@ -58,8 +79,22 @@ export async function InstructorDashboard({
   for (const p of pendingGrades ?? []) {
     pendingByProgram.set(p.program_id, (pendingByProgram.get(p.program_id) ?? 0) + 1);
   }
+  const gradedByProgram = new Map<string, number>();
+  for (const g of gradedRows ?? []) {
+    gradedByProgram.set(g.program_id, (gradedByProgram.get(g.program_id) ?? 0) + 1);
+  }
+  const lastActivityByProgram = new Map<string, string>();
+  for (const a of (lastActivityRows ?? []) as { program_id: string; updated_at: string }[]) {
+    if (!lastActivityByProgram.has(a.program_id)) {
+      lastActivityByProgram.set(a.program_id, a.updated_at);
+    }
+  }
+  const certsByProgram = new Map<string, number>();
+  for (const c of certRows ?? []) {
+    certsByProgram.set(c.program_id, (certsByProgram.get(c.program_id) ?? 0) + 1);
+  }
   const totalLearners = enrollmentCounts?.length ?? 0;
-  const totalCertificates = 0; // computed in Phase 2 once cert awards are wired
+  const totalCertificates = certRows?.length ?? 0;
 
   // Build the first-run checklist (Phase B). Hidden once everything's checked.
   const firstProgram = ownPrograms?.[0];
@@ -219,6 +254,12 @@ export async function InstructorDashboard({
             const pending = pendingByProgram.get(p.id) ?? 0;
             const learners = enrollByProgram.get(p.id) ?? 0;
             const nodes = nodesByProgram.get(p.id) ?? 0;
+            const graded = gradedByProgram.get(p.id) ?? 0;
+            const possible = learners * nodes;
+            const completePct = possible === 0 ? 0 : Math.round((graded / possible) * 100);
+            const lastActivity = lastActivityByProgram.get(p.id);
+            const status = (p.status ?? "draft") as "draft" | "published" | "archived";
+            const certCount = certsByProgram.get(p.id) ?? 0;
             return (
               <Cassette
                 key={p.id}
@@ -227,26 +268,42 @@ export async function InstructorDashboard({
                 meta={p.description?.slice(0, 80) ?? "—"}
                 href={`/programs/${p.id}`}
                 corner={
-                  pending > 0 ? (
-                    <>
-                      <span className="cq-square" /> {pending} PENDING
-                    </>
-                  ) : (
-                    <>{p.status?.toUpperCase()}</>
-                  )
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    {pending > 0 ? (
+                      <>
+                        <span className="cq-square" />
+                        {pending} PENDING
+                      </>
+                    ) : null}
+                    <span style={{ opacity: pending > 0 ? 0.6 : 1 }}>{status.toUpperCase()}</span>
+                  </span>
                 }
               >
                 <CassetteStats
                   items={[
                     { v: learners, k: "LEARNERS" },
-                    { v: "—", k: "COMPLETE" },
+                    { v: possible === 0 ? "—" : `${completePct}%`, k: "COMPLETE" },
                     { v: nodes, k: "NODES" },
                   ]}
                 />
                 <CassetteChips>
                   <Chip>BOT</Chip>
                   {p.default_model?.includes("claude") ? <Chip ghost>CLAUDE</Chip> : <Chip ghost>GPT</Chip>}
+                  {certCount > 0 ? <Chip ghost>{certCount} CERTS</Chip> : null}
                 </CassetteChips>
+                {lastActivity ? (
+                  <div
+                    className="cq-mono"
+                    style={{
+                      fontSize: 11,
+                      color: "var(--muted)",
+                      marginTop: 8,
+                    }}
+                    title={new Date(lastActivity).toISOString()}
+                  >
+                    LAST · {relativeTime(lastActivity)}
+                  </div>
+                ) : null}
               </Cassette>
             );
           })}
@@ -257,6 +314,7 @@ export async function InstructorDashboard({
     </div>
   );
 }
+
 
 function EmptyState() {
   return (
