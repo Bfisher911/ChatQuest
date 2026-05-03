@@ -331,6 +331,211 @@ export async function uploadKbFile(formData: FormData) {
   return { ok: result.status === "indexed", error: result.error, fileId: row.id, chunks: result.chunks };
 }
 
+// ─────────── Duplicate a Chatrail ───────────
+
+/**
+ * Clone a Chatrail and everything that defines its shape — nodes, edges,
+ * chatbot configs, node rules, certificates (rebound to the new node ids),
+ * and a fresh program-level knowledge collection.
+ *
+ * Intentionally NOT cloned: enrollments, conversations, submissions, grades,
+ * cert awards, KB files. The duplicate starts as a clean draft.
+ */
+export async function duplicateProgram(programId: string) {
+  const session = await getActiveRole();
+  if (!session?.activeOrganizationId) return { ok: false as const, error: "No active organization" };
+  if (!["instructor", "org_admin", "super_admin"].includes(session.activeRole)) {
+    return { ok: false as const, error: "Only Creators can duplicate Chatrails." };
+  }
+  const admin = createServiceRoleClient();
+
+  // 1. Source program (must be in caller's org).
+  const { data: src } = await admin
+    .from("programs")
+    .select(
+      "id, organization_id, title, description, cover_image_url, default_model, monthly_token_budget, passing_threshold, share_conversations_with_org_admin, learner_pays, learner_price_cents",
+    )
+    .eq("id", programId)
+    .maybeSingle();
+  if (!src) return { ok: false as const, error: "Chatrail not found" };
+  if (src.organization_id !== session.activeOrganizationId && !session.user.isSuperAdmin) {
+    return { ok: false as const, error: "Cross-org duplication refused." };
+  }
+
+  // 2. Insert new program row as a draft.
+  const { data: newProgram, error: progErr } = await admin
+    .from("programs")
+    .insert({
+      organization_id: src.organization_id,
+      created_by: session.user.id,
+      title: `Copy of ${src.title}`,
+      description: src.description,
+      cover_image_url: src.cover_image_url,
+      status: "draft",
+      enrollment_type: "invite_only",
+      default_model: src.default_model,
+      monthly_token_budget: src.monthly_token_budget,
+      passing_threshold: src.passing_threshold,
+      share_conversations_with_org_admin: src.share_conversations_with_org_admin,
+      learner_pays: src.learner_pays,
+      learner_price_cents: src.learner_price_cents,
+    })
+    .select("id")
+    .single();
+  if (progErr || !newProgram) return { ok: false as const, error: progErr?.message ?? "Failed to create copy." };
+
+  // 2a. Add caller as program owner.
+  await admin.from("program_instructors").insert({
+    program_id: newProgram.id,
+    user_id: session.user.id,
+    capacity: "owner",
+  });
+
+  // 3. Clone nodes (build old_id → new_id mapping).
+  const { data: srcNodes } = await admin
+    .from("path_nodes")
+    .select("id, type, title, display_order, x, y, points, is_required, config, available_at, due_at, until_at")
+    .eq("program_id", programId)
+    .order("display_order", { ascending: true });
+  const nodeIdMap = new Map<string, string>();
+  for (const n of srcNodes ?? []) {
+    const { data: inserted, error: nodeErr } = await admin
+      .from("path_nodes")
+      .insert({
+        program_id: newProgram.id,
+        type: n.type,
+        title: n.title,
+        display_order: n.display_order,
+        x: n.x,
+        y: n.y,
+        points: n.points,
+        is_required: n.is_required,
+        config: n.config,
+        available_at: n.available_at,
+        due_at: n.due_at,
+        until_at: n.until_at,
+      })
+      .select("id")
+      .single();
+    if (nodeErr || !inserted) {
+      // Best-effort cleanup so we don't leave a half-baked program around.
+      await admin.from("programs").delete().eq("id", newProgram.id);
+      return { ok: false as const, error: nodeErr?.message ?? "Failed to clone a node." };
+    }
+    nodeIdMap.set(n.id, inserted.id);
+  }
+
+  // 4. Clone chatbot_configs for every bot node.
+  const botNodeIds = (srcNodes ?? []).filter((n) => n.type === "bot").map((n) => n.id);
+  if (botNodeIds.length > 0) {
+    const { data: configs } = await admin
+      .from("chatbot_configs")
+      .select(
+        "node_id, bot_name, avatar_initials, learner_instructions, system_prompt, conversation_goal, completion_criteria, model, temperature, max_tokens, token_budget, attempts_allowed, end_after_turns, end_when_objective_met, require_submit_button, produce_completion_summary, ask_reflection_questions, allow_retry_after_feedback, rubric_id, ai_grading_enabled, use_program_kb, node_kb_id",
+      )
+      .in("node_id", botNodeIds);
+    const cfgRows = (configs ?? [])
+      .map((c) => {
+        const newNodeId = nodeIdMap.get(c.node_id);
+        if (!newNodeId) return null;
+        const { node_id: _drop, ...rest } = c as { node_id: string } & Record<string, unknown>;
+        void _drop;
+        return { ...rest, node_id: newNodeId };
+      })
+      .filter((r): r is NonNullable<typeof r> => r != null);
+    if (cfgRows.length > 0) {
+      await admin.from("chatbot_configs").insert(cfgRows);
+    }
+  }
+
+  // 5. Clone path_edges (rebind source + target to new node ids).
+  const { data: srcEdges } = await admin
+    .from("path_edges")
+    .select("source_node_id, target_node_id, condition")
+    .eq("program_id", programId);
+  const edgeRows = (srcEdges ?? [])
+    .map((e) => {
+      const newSrc = nodeIdMap.get(e.source_node_id);
+      const newTgt = nodeIdMap.get(e.target_node_id);
+      if (!newSrc || !newTgt) return null;
+      return {
+        program_id: newProgram.id,
+        source_node_id: newSrc,
+        target_node_id: newTgt,
+        condition: e.condition,
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r != null);
+  if (edgeRows.length > 0) {
+    await admin.from("path_edges").insert(edgeRows);
+  }
+
+  // 6. Clone node_rules (config jsonb may reference old node ids — best effort
+  //    rebind for the common shapes we know about).
+  if (srcNodes && srcNodes.length > 0) {
+    const { data: srcRules } = await admin
+      .from("node_rules")
+      .select("node_id, rule_kind, config")
+      .in("node_id", srcNodes.map((n) => n.id));
+    const ruleRows = (srcRules ?? [])
+      .map((r) => {
+        const newNodeId = nodeIdMap.get(r.node_id);
+        if (!newNodeId) return null;
+        const cfg = r.config as Record<string, unknown> | null;
+        let rebound: Record<string, unknown> = cfg ?? {};
+        if (cfg) {
+          if (typeof cfg.node_id === "string") {
+            const m = nodeIdMap.get(cfg.node_id);
+            if (m) rebound = { ...rebound, node_id: m };
+          }
+          if (Array.isArray(cfg.node_ids)) {
+            rebound = {
+              ...rebound,
+              node_ids: (cfg.node_ids as string[]).map((id) => nodeIdMap.get(id) ?? id),
+            };
+          }
+        }
+        return { node_id: newNodeId, rule_kind: r.rule_kind, config: rebound };
+      })
+      .filter((r): r is NonNullable<typeof r> => r != null);
+    if (ruleRows.length > 0) {
+      await admin.from("node_rules").insert(ruleRows);
+    }
+  }
+
+  // 7. Clone certificates (rebind required_node_ids to new ids; reuse template).
+  const { data: srcCerts } = await admin
+    .from("certificates")
+    .select("title, node_id, template_id, required_node_ids, min_grade_percentage, requires_instructor_approval")
+    .eq("program_id", programId);
+  const certRows = (srcCerts ?? []).map((c) => ({
+    program_id: newProgram.id,
+    node_id: c.node_id ? nodeIdMap.get(c.node_id) ?? null : null,
+    template_id: c.template_id,
+    title: c.title,
+    required_node_ids: ((c.required_node_ids as string[] | null) ?? []).map(
+      (id) => nodeIdMap.get(id) ?? id,
+    ),
+    min_grade_percentage: c.min_grade_percentage,
+    requires_instructor_approval: c.requires_instructor_approval,
+  }));
+  if (certRows.length > 0) {
+    await admin.from("certificates").insert(certRows);
+  }
+
+  // 8. Provision a fresh program-level KB collection (empty — files don't copy).
+  await admin.from("knowledge_collections").insert({
+    organization_id: src.organization_id,
+    program_id: newProgram.id,
+    name: "Program Knowledge Base",
+    created_by: session.user.id,
+  });
+
+  revalidatePath("/programs");
+  revalidatePath("/dashboard");
+  return { ok: true as const, programId: newProgram.id };
+}
+
 export async function reindexKbFile(fileId: string) {
   const session = await getActiveRole();
   if (!session?.activeOrganizationId) return { ok: false as const, error: "No active organization" };

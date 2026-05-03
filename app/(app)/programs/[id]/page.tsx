@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Cassette, Eyebrow, Btn, Icon, Chip, Frame } from "@/components/brutalist";
 import { bin } from "@/lib/utils/binary";
+import { DuplicateChatrailButton } from "./duplicate-button";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,7 @@ export default async function ProgramOverview({ params }: { params: { id: string
               <Icon name="check" /> GRADEBOOK
             </Link>
           </Btn>
+          <DuplicateChatrailButton programId={program.id} />
         </div>
       </Frame>
 
