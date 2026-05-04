@@ -338,6 +338,49 @@ export async function deleteEdge(programId: string, sourceNodeId: string, target
   return { ok: true as const };
 }
 
+// ─────────── Edge condition update ───────────
+//
+// Sets / clears the condition on an existing edge. Pass `condition: null`
+// to make the edge a plain "after this completes" sequencer with no extra
+// gating. Validates the shape against EdgeCondition union before writing.
+
+const edgeConditionUpdateSchema = z.object({
+  programId: z.string().uuid(),
+  sourceNodeId: z.string().uuid(),
+  targetNodeId: z.string().uuid(),
+  condition: z
+    .union([
+      z.null(),
+      z.object({ kind: z.literal("after"), node_id: z.string().uuid() }),
+      z.object({
+        kind: z.literal("min_score"),
+        node_id: z.string().uuid(),
+        min_percentage: z.coerce.number().min(0).max(100),
+      }),
+      z.object({ kind: z.literal("date"), available_at: z.string().min(1) }),
+      z.object({ kind: z.literal("either"), any_of: z.array(z.string().uuid()).min(1) }),
+    ])
+    .nullable(),
+});
+
+export async function updateEdgeCondition(input: z.infer<typeof edgeConditionUpdateSchema>) {
+  await requireSessionUser();
+  const parsed = edgeConditionUpdateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("path_edges")
+    .update({ condition: parsed.data.condition })
+    .eq("program_id", parsed.data.programId)
+    .eq("source_node_id", parsed.data.sourceNodeId)
+    .eq("target_node_id", parsed.data.targetNodeId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath(`/programs/${parsed.data.programId}/builder`);
+  return { ok: true as const };
+}
+
 // ─────────── Learner: mark non-bot node complete ───────────
 
 /**

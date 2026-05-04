@@ -29,6 +29,7 @@ import {
   NodeInspector as TypedNodeInspector,
   type SiblingNode,
 } from "@/components/builder/inspectors";
+import { EdgeInspector, describeCondition } from "@/components/builder/edge-inspector";
 import {
   createNode,
   updateNode,
@@ -36,7 +37,7 @@ import {
   createEdge,
   deleteEdge,
 } from "@/lib/path/actions";
-import type { NodeType } from "@/lib/db/types";
+import type { EdgeCondition, NodeType } from "@/lib/db/types";
 import { toast } from "sonner";
 
 interface PathNodeMin {
@@ -175,16 +176,10 @@ function PathBuilderInner({
     })),
   );
   const [edges, setEdges] = React.useState<Edge[]>(() =>
-    initialEdges.map((e, i) => ({
-      id: `${e.source_node_id}->${e.target_node_id}`,
-      source: e.source_node_id,
-      target: e.target_node_id,
-      style: { stroke: "var(--ink)", strokeWidth: 2 },
-      markerEnd: { type: "arrow", color: "var(--ink)" },
-      data: { condition: e.condition },
-    })),
+    initialEdges.map((e) => buildEdge(e.source_node_id, e.target_node_id, e.condition as EdgeCondition | null)),
   );
   const [selectedId, setSelectedId] = React.useState<string | null>(initialNodes[0]?.id ?? null);
+  const [selectedEdgeId, setSelectedEdgeId] = React.useState<string | null>(null);
 
   const onNodesChange: OnNodesChange = (changes) => {
     setNodes((ns) => applyNodeChanges(changes, ns));
@@ -202,6 +197,7 @@ function PathBuilderInner({
       if (c.type === "remove") {
         const removed = edges.find((e) => e.id === c.id);
         if (removed) {
+          if (selectedEdgeId === removed.id) setSelectedEdgeId(null);
           void deleteEdge(programId, removed.source, removed.target);
         }
       }
@@ -210,10 +206,7 @@ function PathBuilderInner({
 
   const onConnect: OnConnect = (params) => {
     if (!params.source || !params.target) return;
-    setEdges((es) => addEdge(
-      { ...params, style: { stroke: "var(--ink)", strokeWidth: 2 }, markerEnd: { type: "arrow", color: "var(--ink)" } },
-      es,
-    ));
+    setEdges((es) => addEdge(buildEdge(params.source!, params.target!, null), es));
     void createEdge({
       programId,
       sourceNodeId: params.source,
@@ -295,7 +288,15 @@ function PathBuilderInner({
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeClick={(_e, n) => setSelectedId(n.id)}
+          onNodeClick={(_e, n) => {
+            setSelectedId(n.id);
+            setSelectedEdgeId(null);
+          }}
+          onEdgeClick={(_e, edge) => {
+            setSelectedEdgeId(edge.id);
+            setSelectedId(null);
+          }}
+          onPaneClick={() => setSelectedEdgeId(null)}
           fitView
           fitViewOptions={{ padding: 0.2 }}
           proOptions={{ hideAttribution: true }}
@@ -307,9 +308,27 @@ function PathBuilderInner({
         </ReactFlow>
       </div>
 
-      {/* RIGHT: inspector */}
+      {/* RIGHT: inspector — node OR edge depending on what's selected */}
       <aside className="cq-pb__inspector">
-        {selectedNode ? (
+        {selectedEdgeId ? (
+          (() => {
+            const edge = edges.find((e) => e.id === selectedEdgeId);
+            if (!edge) return null;
+            const initialCondition = (edge.data as { condition?: EdgeCondition | null } | undefined)?.condition ?? null;
+            return (
+              <EdgeInspector
+                key={selectedEdgeId}
+                programId={programId}
+                sourceNodeId={edge.source}
+                targetNodeId={edge.target}
+                initialCondition={initialCondition}
+                siblings={initialNodes.map((n) => ({ id: n.id, title: n.title, type: n.type }))}
+                onClose={() => setSelectedEdgeId(null)}
+                onChange={() => router.refresh()}
+              />
+            );
+          })()
+        ) : selectedNode ? (
           <TypedNodeInspector
             programId={programId}
             rubrics={rubrics}
@@ -334,12 +353,48 @@ function PathBuilderInner({
           />
         ) : (
           <div className="cq-mono" style={{ fontSize: 13, color: "var(--muted)" }}>
-            Click a node to inspect.
+            Click a node to inspect — or click an edge to set conditions.
           </div>
         )}
       </aside>
     </div>
   );
+}
+
+/**
+ * Build a React Flow edge with consistent styling and a label that
+ * surfaces the gating condition on the canvas (so creators see "MIN 80%"
+ * etc. without opening the inspector).
+ */
+function buildEdge(
+  source: string,
+  target: string,
+  condition: EdgeCondition | null,
+): Edge {
+  const label = describeCondition(condition);
+  const conditional = condition !== null;
+  return {
+    id: `${source}->${target}`,
+    source,
+    target,
+    label: label || undefined,
+    labelBgPadding: [6, 4],
+    labelBgBorderRadius: 0,
+    labelBgStyle: { fill: "var(--paper)", stroke: "var(--ink)", strokeWidth: 1 },
+    labelStyle: {
+      fontFamily: "var(--font-mono)",
+      fontSize: 10,
+      fontWeight: 700,
+      fill: "var(--ink)",
+    },
+    style: {
+      stroke: "var(--ink)",
+      strokeWidth: conditional ? 2.5 : 2,
+      strokeDasharray: conditional ? "4 4" : undefined,
+    },
+    markerEnd: { type: "arrow", color: "var(--ink)" },
+    data: { condition },
+  };
 }
 
 function defaultConfig(type: NodeType): Record<string, unknown> {
