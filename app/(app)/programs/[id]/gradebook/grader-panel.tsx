@@ -190,23 +190,102 @@ export function GraderPanel({
 
         {criteria.length > 0 ? (
           <>
-            <Eyebrow>RUBRIC · {criteria.length} CRITERIA</Eyebrow>
+            <div className="row-between" style={{ alignItems: "center", marginTop: 4 }}>
+              <Eyebrow>RUBRIC · {criteria.length} CRITERIA</Eyebrow>
+              <Btn
+                sm
+                ghost
+                onClick={() => {
+                  // Sum per-criterion scores into the total field. Skips
+                  // missing entries (treated as 0 in the sum).
+                  const total = criteria.reduce((acc, c) => {
+                    const pc = perCriterion.find((p) => p.criterion_id === c.id);
+                    return acc + (pc?.score ?? 0);
+                  }, 0);
+                  setScore(String(total));
+                  toast.success(`Total set to ${total}.`);
+                }}
+              >
+                <Icon name="check" /> SUM TO TOTAL
+              </Btn>
+            </div>
             <div className="cq-rubric" style={{ marginTop: 8 }}>
               {criteria.map((c) => {
                 const pc = perCriterion.find((p) => p.criterion_id === c.id);
+                const score = pc?.score ?? 0;
+                const rationale = pc?.rationale ?? "";
+                function patch(next: { score?: number; rationale?: string }) {
+                  setPerCriterion((curr) => {
+                    const idx = curr.findIndex((p) => p.criterion_id === c.id);
+                    const merged = {
+                      criterion_id: c.id,
+                      score: next.score ?? score,
+                      rationale: next.rationale ?? rationale,
+                    };
+                    if (idx === -1) return [...curr, merged];
+                    const copy = [...curr];
+                    copy[idx] = merged;
+                    return copy;
+                  });
+                }
                 return (
-                  <div key={c.id} className="cq-rubric__row">
-                    <div>
-                      <div>{c.name}</div>
-                      <div style={{ color: "var(--muted)", fontSize: 11 }}>
-                        {pc?.rationale ?? "—"}
+                  <div
+                    key={c.id}
+                    style={{
+                      padding: 10,
+                      borderBottom: "var(--hair) solid var(--ink)",
+                      display: "grid",
+                      gridTemplateColumns: "1fr 110px",
+                      gap: 12,
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 13 }}>
+                        {c.name}
                       </div>
+                      <textarea
+                        value={rationale}
+                        onChange={(e) => patch({ rationale: e.target.value })}
+                        placeholder="Rationale (visible to learner) — optional"
+                        rows={2}
+                        style={{
+                          marginTop: 6,
+                          width: "100%",
+                          padding: "6px 8px",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 12,
+                          border: "var(--hair) solid var(--ink)",
+                          background: "var(--paper)",
+                          resize: "vertical",
+                        }}
+                      />
                     </div>
-                    <div className="score">
-                      {pc?.score ?? "—"}
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, opacity: 0.5 }}>
-                        {" "}/ {c.max_points}
-                      </span>
+                    <div>
+                      <input
+                        type="number"
+                        min={0}
+                        max={c.max_points}
+                        step="0.5"
+                        value={score}
+                        onChange={(e) => patch({ score: Number(e.target.value) })}
+                        style={{
+                          width: "100%",
+                          padding: "6px 8px",
+                          fontFamily: "var(--font-sans)",
+                          fontSize: 18,
+                          fontWeight: 800,
+                          textAlign: "right",
+                          border: "var(--hair) solid var(--ink)",
+                          background: "var(--paper)",
+                        }}
+                      />
+                      <div
+                        className="cq-mono"
+                        style={{ fontSize: 11, color: "var(--muted)", textAlign: "right", marginTop: 4 }}
+                      >
+                        / {c.max_points}
+                      </div>
                     </div>
                   </div>
                 );
