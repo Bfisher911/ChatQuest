@@ -13,6 +13,13 @@ import {
   MilestoneNodeView,
   CertNodeView,
 } from "@/components/learn/non-bot-node";
+import {
+  computeProgress,
+  type PathNodeMin,
+  type PathEdgeMin,
+  type SubmissionMin,
+  type NodeRuleMin,
+} from "@/lib/path/progress";
 
 export const dynamic = "force-dynamic";
 
@@ -247,18 +254,75 @@ export default async function LearnNodePage({
     .eq("conversation_id", start.conversationId)
     .order("created_at", { ascending: true });
 
-  // Sibling nodes for the path rail.
-  const { data: sibs } = await supabase
-    .from("path_nodes")
-    .select("id, title, type, display_order")
-    .eq("program_id", params.programId)
-    .order("display_order", { ascending: true });
+  // Sibling nodes for the path rail — pull the full graph + run the
+  // progress engine so locked / available / in-progress / completed states
+  // match what the learner saw on the journey page.
+  const [{ data: sibs }, { data: edges }, { data: rules }, { data: subs }] = await Promise.all([
+    supabase
+      .from("path_nodes")
+      .select("id, title, type, display_order, available_at, due_at, is_required, points")
+      .eq("program_id", params.programId)
+      .order("display_order", { ascending: true }),
+    supabase
+      .from("path_edges")
+      .select("source_node_id, target_node_id, condition")
+      .eq("program_id", params.programId),
+    supabase
+      .from("node_rules")
+      .select("node_id, rule_kind, config"),
+    supabase
+      .from("submissions")
+      .select("node_id, attempt_number, conversation_id")
+      .eq("program_id", params.programId)
+      .eq("learner_id", session.user.id),
+  ]);
 
+  const subIds = (subs ?? []).map((s) => s.conversation_id);
   const { data: convStatuses } = await supabase
     .from("conversations")
-    .select("node_id, status")
+    .select("id, node_id, status")
     .eq("program_id", params.programId)
     .eq("learner_id", session.user.id);
+  const statusByConvId = new Map<string, string>();
+  for (const c of convStatuses ?? []) statusByConvId.set(c.id, c.status);
+
+  const { data: gradeRows } = await supabase
+    .from("grades")
+    .select("node_id, percentage, status")
+    .eq("program_id", params.programId)
+    .eq("learner_id", session.user.id);
+  const gradeByNode = new Map<string, { pct: number | null; status: string }>();
+  for (const g of gradeRows ?? []) {
+    gradeByNode.set(g.node_id, {
+      pct: g.percentage == null ? null : Number(g.percentage),
+      status: g.status,
+    });
+  }
+
+  const submissionsForEngine: SubmissionMin[] = (subs ?? []).map((s) => {
+    const convStatus = subIds.includes(s.conversation_id)
+      ? statusByConvId.get(s.conversation_id) ?? "in_progress"
+      : "in_progress";
+    const grade = gradeByNode.get(s.node_id);
+    let status: SubmissionMin["status"] = "in_progress";
+    if (grade?.status === "graded") status = "graded";
+    else if (grade?.status === "needs_revision") status = "needs_revision";
+    else if (convStatus === "submitted" || convStatus === "completed") status = "submitted";
+    return {
+      node_id: s.node_id,
+      attempt_number: s.attempt_number,
+      status,
+      percentage: grade?.pct ?? null,
+      delivery_status: null,
+    };
+  });
+
+  const progress = computeProgress({
+    nodes: ((sibs ?? []) as unknown) as PathNodeMin[],
+    edges: ((edges ?? []) as unknown) as PathEdgeMin[],
+    rules: ((rules ?? []) as unknown) as NodeRuleMin[],
+    submissions: submissionsForEngine,
+  });
 
   return (
     <ChatScreen
@@ -285,20 +349,24 @@ export default async function LearnNodePage({
         role: m.role as "user" | "assistant",
         content: m.content,
       }))}
-      pathNodes={(sibs ?? []).map((n, i) => ({
-        id: n.id,
-        title: n.title,
-        type: n.type as string,
-        index: i + 1,
-        status:
-          convStatuses?.find((c) => c.node_id === n.id)?.status === "graded" ||
-          convStatuses?.find((c) => c.node_id === n.id)?.status === "completed" ||
-          convStatuses?.find((c) => c.node_id === n.id)?.status === "submitted"
-            ? "DONE"
-            : n.id === params.nodeId
+      pathNodes={(sibs ?? []).map((n, i) => {
+        const state = progress.get(n.id)?.state ?? "available";
+        const status: "DONE" | "ACTIVE" | "AVAILABLE" | "LOCKED" =
+          n.id === params.nodeId
             ? "ACTIVE"
-            : "AVAILABLE",
-      }))}
+            : state === "completed"
+            ? "DONE"
+            : state === "locked"
+            ? "LOCKED"
+            : "AVAILABLE";
+        return {
+          id: n.id,
+          title: n.title,
+          type: n.type as string,
+          index: i + 1,
+          status,
+        };
+      })}
     />
   );
 }

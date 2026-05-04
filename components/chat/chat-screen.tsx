@@ -27,7 +27,13 @@ export interface ChatScreenProps {
   } | null;
   learnerName: string;
   initialMessages: Message[];
-  pathNodes: { id: string; title: string; type: string; index: number; status: "DONE" | "ACTIVE" | "AVAILABLE" }[];
+  pathNodes: {
+    id: string;
+    title: string;
+    type: string;
+    index: number;
+    status: "DONE" | "ACTIVE" | "AVAILABLE" | "LOCKED";
+  }[];
 }
 
 export function ChatScreen(props: ChatScreenProps) {
@@ -167,32 +173,64 @@ export function ChatScreen(props: ChatScreenProps) {
         <div className="cq-mono" style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, marginBottom: 16 }}>
           NODE {bin(props.pathNodes.findIndex((n) => n.id === props.nodeId) + 1, 8)}
         </div>
-        {props.pathNodes.map((n) => (
-          <Link
-            key={n.id}
-            href={`/learn/${props.programId}/${n.id}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "10px 12px",
-              border: "var(--hair) solid var(--ink)",
-              background: n.id === props.nodeId ? "var(--ink)" : "var(--paper)",
-              color: n.id === props.nodeId ? "var(--paper)" : "var(--ink)",
-              opacity: 1,
-              marginBottom: 6,
-              fontFamily: "var(--font-mono)",
-              fontSize: 13,
-            }}
-          >
-            <span style={{ fontFamily: "var(--font-pixel)", fontSize: 8, flexShrink: 0 }}>{bin(n.index, 4)}</span>
-            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {n.title}
-            </span>
-            {n.status === "DONE" && <Icon name="check" size={12} />}
-            {n.status === "ACTIVE" && <Icon name="play" size={10} />}
-          </Link>
-        ))}
+        {props.pathNodes.map((n) => {
+          const isLocked = n.status === "LOCKED";
+          const isActive = n.id === props.nodeId;
+          const sharedStyle: React.CSSProperties = {
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 12px",
+            border: "var(--hair) solid var(--ink)",
+            background: isActive ? "var(--ink)" : "var(--paper)",
+            color: isActive ? "var(--paper)" : "var(--ink)",
+            opacity: isLocked ? 0.55 : 1,
+            marginBottom: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 13,
+            cursor: isLocked ? "not-allowed" : undefined,
+          };
+          const inner = (
+            <>
+              <span style={{ fontFamily: "var(--font-pixel)", fontSize: 8, flexShrink: 0 }}>
+                {bin(n.index, 4)}
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {n.title}
+              </span>
+              {n.status === "DONE" && <Icon name="check" size={12} />}
+              {n.status === "ACTIVE" && <Icon name="play" size={10} />}
+              {n.status === "LOCKED" && <Icon name="lock" size={10} />}
+            </>
+          );
+          if (isLocked) {
+            // Render a non-link span so accidental clicks don't navigate
+            // into the access-denied error path.
+            return (
+              <span
+                key={n.id}
+                aria-disabled
+                title="Locked — complete prereqs first."
+                style={sharedStyle}
+              >
+                {inner}
+              </span>
+            );
+          }
+          return (
+            <Link key={n.id} href={`/learn/${props.programId}/${n.id}`} style={sharedStyle}>
+              {inner}
+            </Link>
+          );
+        })}
       </aside>
 
       <div className="cq-chat__main">
