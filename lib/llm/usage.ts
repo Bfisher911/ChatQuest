@@ -9,7 +9,7 @@ export interface LogUsageInput {
   nodeId?: string | null;
   conversationId?: string | null;
   userId?: string | null;
-  kind: "chat" | "embedding" | "grade_suggest";
+  kind: "chat" | "chat-preview" | "embedding" | "grade_suggest";
   model: string;
   promptTokens: number;
   completionTokens: number;

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Eyebrow, Btn, Icon, Chip } from "@/components/brutalist";
 import { BotNodeForm } from "../../bot-node-form";
+import { PreviewChatPanel } from "@/components/builder/preview-chat-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -50,11 +51,6 @@ export default async function NodeEditorPage({
             <Icon name="arrow" style={{ transform: "rotate(180deg)" }} /> BACK TO BUILDER
           </Link>
         </Btn>
-        <Btn sm ghost asChild>
-          <Link href={`/learn/${node.program_id}/${node.id}?preview=1`}>
-            <Icon name="play" /> PREVIEW AS LEARNER
-          </Link>
-        </Btn>
       </div>
       <BotNodeForm
         programId={node.program_id}
@@ -78,6 +74,10 @@ export default async function NodeEditorPage({
             | null)?.[0] ?? null,
         }}
       />
+
+      {/* Inline ephemeral preview — uses the saved bot config + KB without
+          creating real conversations or polluting submissions/grades. */}
+      <PreviewChatPanel nodeId={node.id} />
     </div>
   );
 }
