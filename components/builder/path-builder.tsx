@@ -274,8 +274,10 @@ function PathBuilderInner({
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.5, color: "var(--muted)" }}>
           · Drag nodes to lay out<br />
           · Drag handles to connect<br />
-          · Click an edge + DEL to remove<br />
-          · Click a node to inspect →
+          · Click a node to inspect →<br />
+          · Click an edge to set conditions<br />
+          · Dashed edges have gating<br />
+          · Click an edge + DEL to remove
         </div>
       </aside>
 

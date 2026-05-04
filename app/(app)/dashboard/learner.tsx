@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Cassette, CassetteStats, CassetteChips, Chip, Eyebrow, Icon, Btn } from "@/components/brutalist";
 import { bin } from "@/lib/utils/binary";
+import { relativeTime } from "@/lib/utils/relative-time";
 
 type Supabase = ReturnType<typeof import("@/lib/supabase/server").createClient>;
 
@@ -52,11 +53,48 @@ export async function LearnerDashboard({
     doneByProgram.set(c.program_id, (doneByProgram.get(c.program_id) ?? 0) + 1);
   }
 
+  // Real cert count + per-program flag (so cassettes can show "EARNED" chip).
+  const { data: awards } = await supabase
+    .from("certificate_awards")
+    .select("program_id")
+    .eq("learner_id", userId);
+  const certsByProgram = new Map<string, number>();
+  for (const a of awards ?? []) {
+    certsByProgram.set(a.program_id, (certsByProgram.get(a.program_id) ?? 0) + 1);
+  }
+
+  // Real avg score across all graded work for this learner.
+  const { data: grades } = await supabase
+    .from("grades")
+    .select("percentage, program_id, status")
+    .eq("learner_id", userId)
+    .in("status", ["graded", "completed"]);
+  const validGrades = (grades ?? []).filter((g) => g.percentage != null);
+  const avgScore =
+    validGrades.length > 0
+      ? Math.round(validGrades.reduce((s, g) => s + Number(g.percentage), 0) / validGrades.length)
+      : null;
+
+  // Most recent activity per program — surfaces stale enrollments as
+  // "haven't touched this in a while" so the learner picks up where they
+  // left off most recently.
+  const { data: lastActivity } = await supabase
+    .from("conversations")
+    .select("program_id, updated_at")
+    .eq("learner_id", userId)
+    .order("updated_at", { ascending: false });
+  const lastActivityByProgram = new Map<string, string>();
+  for (const r of (lastActivity ?? []) as { program_id: string; updated_at: string }[]) {
+    if (!lastActivityByProgram.has(r.program_id)) {
+      lastActivityByProgram.set(r.program_id, r.updated_at);
+    }
+  }
+
   const stats = [
     { k: "IN PROGRESS", v: String(enrollRows.filter((e) => e.status === "active").length) },
     { k: "COMPLETED", v: String(enrollRows.filter((e) => e.status === "completed").length) },
-    { k: "CERTIFICATES", v: "0" },
-    { k: "AVG SCORE", v: "—" },
+    { k: "CERTIFICATES", v: String(awards?.length ?? 0) },
+    { k: "AVG SCORE", v: avgScore == null ? "—" : `${avgScore}%` },
   ];
 
   return (
@@ -107,13 +145,37 @@ export async function LearnerDashboard({
             const done = doneByProgram.get(p.id) ?? 0;
             const total = nodesByProgram.get(p.id) ?? 0;
             const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+            const certCount = certsByProgram.get(p.id) ?? 0;
+            const lastTs = lastActivityByProgram.get(p.id);
+            const isDraft = p.status === "draft";
+            const isArchived = p.status === "archived";
+            const dueDateLabel = p.due_at
+              ? new Date(p.due_at).toISOString().slice(0, 10)
+              : null;
             return (
               <Cassette
                 key={p.id}
                 index={i + 1}
                 title={p.title}
                 meta={p.description?.slice(0, 80) ?? "—"}
-                href={`/learn/${p.id}`}
+                href={isDraft ? undefined : `/learn/${p.id}`}
+                corner={
+                  isDraft ? (
+                    <span style={{ opacity: 0.7 }}>NOT YET LIVE</span>
+                  ) : isArchived ? (
+                    <span style={{ opacity: 0.7 }}>ARCHIVED</span>
+                  ) : pct === 100 && total > 0 ? (
+                    <>
+                      <Icon name="check" size={10} /> COMPLETE
+                    </>
+                  ) : pct > 0 ? (
+                    <>
+                      <Icon name="play" size={10} /> ACTIVE
+                    </>
+                  ) : (
+                    "NOT STARTED"
+                  )
+                }
               >
                 <CassetteStats
                   items={[
@@ -123,8 +185,9 @@ export async function LearnerDashboard({
                   ]}
                 />
                 <CassetteChips>
-                  <Chip>BOT</Chip>
-                  {p.due_at ? <Chip ghost>DUE</Chip> : null}
+                  {certCount > 0 ? <Chip>{certCount} EARNED</Chip> : null}
+                  {dueDateLabel ? <Chip ghost>DUE · {dueDateLabel}</Chip> : null}
+                  {lastTs ? <Chip ghost>LAST · {relativeTime(lastTs)}</Chip> : null}
                 </CassetteChips>
               </Cassette>
             );
