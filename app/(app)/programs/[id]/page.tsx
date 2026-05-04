@@ -32,9 +32,35 @@ export default async function ProgramOverview({ params }: { params: { id: string
 
   const { data: pendingConv } = await supabase
     .from("conversations")
-    .select("id")
+    .select("id, node_id")
     .eq("program_id", params.id)
     .eq("status", "submitted");
+
+  // Per-node grading aggregates so each cassette can show its pending /
+  // graded backlog at a glance — stops creators from clicking through
+  // every node to find which ones need attention.
+  const { data: nodeGrades } = await supabase
+    .from("grades")
+    .select("node_id, status, percentage")
+    .eq("program_id", params.id);
+
+  const pendingByNode = new Map<string, number>();
+  for (const c of pendingConv ?? []) {
+    pendingByNode.set(c.node_id, (pendingByNode.get(c.node_id) ?? 0) + 1);
+  }
+  const gradedByNode = new Map<string, number>();
+  const pctSumsByNode = new Map<string, { sum: number; n: number }>();
+  for (const g of nodeGrades ?? []) {
+    if (g.status === "graded" || g.status === "completed") {
+      gradedByNode.set(g.node_id, (gradedByNode.get(g.node_id) ?? 0) + 1);
+      if (g.percentage != null) {
+        const cur = pctSumsByNode.get(g.node_id) ?? { sum: 0, n: 0 };
+        cur.sum += Number(g.percentage);
+        cur.n += 1;
+        pctSumsByNode.set(g.node_id, cur);
+      }
+    }
+  }
 
   const stats = [
     { k: "NODES", v: String(nodes?.length ?? 0) },
@@ -136,6 +162,10 @@ export default async function ProgramOverview({ params }: { params: { id: string
       <div className="cq-grid cq-grid--3" style={{ marginTop: 16 }}>
         {(nodes ?? []).map((n, i) => {
           const cfg = (n.chatbot_configs as { model?: string }[] | null)?.[0];
+          const pending = pendingByNode.get(n.id) ?? 0;
+          const graded = gradedByNode.get(n.id) ?? 0;
+          const pct = pctSumsByNode.get(n.id);
+          const avgPct = pct && pct.n > 0 ? Math.round(pct.sum / pct.n) : null;
           return (
             <Cassette
               key={n.id}
@@ -145,10 +175,20 @@ export default async function ProgramOverview({ params }: { params: { id: string
               title={n.title}
               meta={`${n.type.toUpperCase()} · ${n.points ?? 0} pts`}
               href={`/programs/${program.id}/nodes/${n.id}`}
+              corner={
+                pending > 0 ? (
+                  <>
+                    <span className="cq-square" /> {pending} PENDING
+                  </>
+                ) : graded > 0 ? (
+                  <span style={{ opacity: 0.7 }}>{graded} GRADED</span>
+                ) : null
+              }
             >
               <div style={{ marginTop: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <Chip>{n.type.toUpperCase()}</Chip>
                 {cfg?.model ? <Chip ghost>{cfg.model}</Chip> : null}
+                {avgPct != null ? <Chip ghost>AVG · {avgPct}%</Chip> : null}
               </div>
             </Cassette>
           );
