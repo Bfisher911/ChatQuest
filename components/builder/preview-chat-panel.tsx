@@ -33,11 +33,25 @@ export function PreviewChatPanel({
   const [draft, setDraft] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [tokensUsed, setTokensUsed] = React.useState(0);
+  // Listen for dirty-state broadcasts from BotNodeForm so the panel can
+  // warn that preview uses last-saved config, not unsaved edits.
+  const [siblingDirty, setSiblingDirty] = React.useState(false);
   const streamRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (streamRef.current) streamRef.current.scrollTop = streamRef.current.scrollHeight;
   }, [messages]);
+
+  React.useEffect(() => {
+    function onDirty(e: Event) {
+      const ce = e as CustomEvent<{ dirty?: boolean }>;
+      if (typeof ce.detail?.dirty === "boolean") setSiblingDirty(ce.detail.dirty);
+    }
+    window.addEventListener("cq-bot-form-dirty", onDirty);
+    return () => window.removeEventListener("cq-bot-form-dirty", onDirty);
+  }, []);
+
+  const showWarning = hasUnsavedChanges || siblingDirty;
 
   function reset() {
     setMessages([]);
@@ -178,7 +192,7 @@ export function PreviewChatPanel({
         </div>
       </div>
 
-      {hasUnsavedChanges ? (
+      {showWarning ? (
         <div
           style={{
             padding: "10px 16px",

@@ -31,6 +31,9 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
+  // Track dirty state so the inline preview panel can warn the creator
+  // they're testing the LAST SAVED config, not their unsaved edits.
+  const [dirty, setDirty] = React.useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,11 +49,36 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
       setError(res.error);
     } else if (mode === "edit") {
       setSuccess("Saved.");
+      setDirty(false);
     }
   }
 
+  // Warn before nav if the creator has unsaved edits.
+  React.useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  // Broadcast dirty state to the sibling PreviewChatPanel via a window
+  // CustomEvent — avoids needing to lift state into a parent client wrapper.
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent("cq-bot-form-dirty", { detail: { dirty } }));
+  }, [dirty]);
+
   return (
-    <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <form
+      onSubmit={onSubmit}
+      onChange={() => {
+        if (!dirty) setDirty(true);
+      }}
+      data-dirty={dirty || undefined}
+      style={{ display: "flex", flexDirection: "column", gap: 14 }}
+    >
       {error ? <div className="cq-form-error">{error}</div> : null}
       {success ? <div className="cq-form-success">{success}</div> : null}
 
