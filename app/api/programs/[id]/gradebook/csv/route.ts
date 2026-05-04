@@ -42,13 +42,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     .select("user_id, user:users(email, full_name)")
     .eq("program_id", params.id);
 
+  // Pull grades newest-first so the dedup-by-cell loop keeps the latest
+  // attempt for multi-attempt nodes. Mirrors the gradebook page logic.
   const { data: grades } = await supabase
     .from("grades")
-    .select("learner_id, node_id, percentage, score, max_score, status, graded_at")
-    .eq("program_id", params.id);
+    .select("learner_id, node_id, percentage, score, max_score, status, graded_at, created_at")
+    .eq("program_id", params.id)
+    .order("created_at", { ascending: false });
 
   const gradeBy = new Map<string, typeof grades extends (infer T)[] | null ? T : never>();
-  for (const g of grades ?? []) gradeBy.set(`${g.learner_id}:${g.node_id}`, g);
+  for (const g of grades ?? []) {
+    const key = `${g.learner_id}:${g.node_id}`;
+    if (gradeBy.has(key)) continue;
+    gradeBy.set(key, g);
+  }
 
   const header = [
     "name",

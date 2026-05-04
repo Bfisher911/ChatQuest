@@ -34,14 +34,38 @@ export default async function GradebookPage({ params }: { params: { id: string }
     .map((e) => e.user)
     .filter((u): u is NonNullable<EnrollmentRow["user"]> => Boolean(u));
 
-  // Cell data = grades
+  // Cell data = grades. Order newest-first then dedup by (learner, node)
+  // so cells consistently show the LATEST attempt — without an order
+  // clause, multi-attempt nodes rendered whichever row Postgres returned
+  // last, which was non-deterministic.
   const { data: grades } = await supabase
     .from("grades")
-    .select("id, learner_id, node_id, status, score, max_score, percentage, submission_id")
-    .eq("program_id", params.id);
+    .select("id, learner_id, node_id, status, score, max_score, percentage, submission_id, created_at")
+    .eq("program_id", params.id)
+    .order("created_at", { ascending: false });
+
+  type GradeRow = {
+    id: string;
+    learner_id: string;
+    node_id: string;
+    status: string;
+    score: number | string | null;
+    max_score: number | string | null;
+    percentage: number | string | null;
+    submission_id: string;
+    created_at: string;
+  };
+  const seen = new Set<string>();
+  const latestGrades: GradeRow[] = [];
+  for (const g of (grades ?? []) as GradeRow[]) {
+    const key = `${g.learner_id}:${g.node_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    latestGrades.push(g);
+  }
 
   // Submission delivery flags
-  const submissionIds = (grades ?? []).map((g) => g.submission_id);
+  const submissionIds = latestGrades.map((g) => g.submission_id);
   const { data: submissionsRows } = await supabase
     .from("submissions")
     .select("id, delivery_status")
@@ -55,7 +79,7 @@ export default async function GradebookPage({ params }: { params: { id: string }
       programTitle={program.title}
       nodes={nodes ?? []}
       learners={learners}
-      grades={(grades ?? []).map((g) => ({
+      grades={latestGrades.map((g) => ({
         ...g,
         delivery_status: g.submission_id ? subById.get(g.submission_id) ?? null : null,
       }))}
