@@ -37,6 +37,10 @@ export function ChatScreen(props: ChatScreenProps) {
   const [pending, setPending] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
   const [tokensUsed, setTokensUsed] = React.useState(0);
+  // When the server says we've hit a token budget (per-attempt or org-wide),
+  // we stop accepting new messages and surface a banner with submit as the
+  // only path forward — toast-and-keep-going produced confusing repeat errors.
+  const [budgetExhausted, setBudgetExhausted] = React.useState<null | "attempt" | "monthly">(null);
   const streamRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -119,7 +123,15 @@ export function ChatScreen(props: ChatScreenProps) {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Send failed";
-      toast.error(msg);
+      // Recognize budget-exhaustion errors and lock the composer instead of
+      // letting the learner spam Send and rack up a stack of failure toasts.
+      if (/monthly token budget/i.test(msg)) {
+        setBudgetExhausted("monthly");
+      } else if (/token budget for this attempt/i.test(msg)) {
+        setBudgetExhausted("attempt");
+      } else {
+        toast.error(msg);
+      }
       setMessages((curr) => curr.filter((m) => !m.streaming));
     } finally {
       setPending(false);
@@ -240,6 +252,29 @@ export function ChatScreen(props: ChatScreenProps) {
           </div>
         ) : null}
 
+        {budgetExhausted ? (
+          <div
+            style={{
+              padding: "14px 24px",
+              borderBottom: "var(--hair) solid var(--ink)",
+              background: "var(--ink)",
+              color: "var(--paper)",
+              fontFamily: "var(--font-mono)",
+              fontSize: 13,
+              lineHeight: 1.5,
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>
+              ■ {budgetExhausted === "attempt" ? "ATTEMPT TOKEN BUDGET EXHAUSTED" : "MONTHLY TOKEN BUDGET EXHAUSTED"}
+            </div>
+            <div style={{ opacity: 0.85 }}>
+              {budgetExhausted === "attempt"
+                ? "You've used the token budget for this attempt. Submit what you have for grading — your instructor can grant a retry if needed."
+                : "Your organization's monthly token budget is fully spent. Submit what you have; new messages will be blocked until the cycle resets or the plan is upgraded."}
+            </div>
+          </div>
+        ) : null}
+
         <div className="cq-chat__stream" ref={streamRef}>
           {messages.length === 0 ? (
             <div className="cq-mono" style={{ color: "var(--muted)", textAlign: "center" }}>
@@ -271,10 +306,14 @@ export function ChatScreen(props: ChatScreenProps) {
                 send();
               }
             }}
-            placeholder="Type your response. Shift+Enter for newline."
-            disabled={pending || submitted}
+            placeholder={
+              budgetExhausted
+                ? "Token budget exhausted — submit above to finish this attempt."
+                : "Type your response. Shift+Enter for newline."
+            }
+            disabled={pending || submitted || !!budgetExhausted}
           />
-          <Btn onClick={send} disabled={pending || submitted || !draft.trim()}>
+          <Btn onClick={send} disabled={pending || submitted || !draft.trim() || !!budgetExhausted}>
             SEND <Icon name="send" />
           </Btn>
         </div>
