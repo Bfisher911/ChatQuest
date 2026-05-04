@@ -25,6 +25,10 @@ export interface NodeData {
   points: number | null;
   is_required: boolean;
   config: Record<string, unknown>;
+  /** ISO timestamp — when this node first becomes available to learners. */
+  available_at?: string | null;
+  /** ISO timestamp — past this point the engine treats unattempted as failed. */
+  due_at?: string | null;
 }
 
 export interface SiblingNode {
@@ -126,6 +130,10 @@ function CommonNodeFields({
   isRequired,
   setIsRequired,
   hidePoints,
+  availableAt,
+  setAvailableAt,
+  dueAt,
+  setDueAt,
 }: {
   title: string;
   setTitle: (s: string) => void;
@@ -134,7 +142,13 @@ function CommonNodeFields({
   isRequired: boolean;
   setIsRequired: (b: boolean) => void;
   hidePoints?: boolean;
+  /** ISO datetime-local string ("2026-05-15T14:00") or empty. */
+  availableAt?: string;
+  setAvailableAt?: (s: string) => void;
+  dueAt?: string;
+  setDueAt?: (s: string) => void;
 }) {
+  const showSchedule = !!setAvailableAt && !!setDueAt;
   return (
     <>
       <div className="cq-field">
@@ -162,8 +176,54 @@ function CommonNodeFields({
           </label>
         </div>
       </div>
+      {showSchedule ? (
+        <div className="cq-grid cq-grid--2" style={{ gap: 12 }}>
+          <div className="cq-field">
+            <label htmlFor="available-at">Available at</label>
+            <input
+              id="available-at"
+              type="datetime-local"
+              className="cq-input"
+              value={availableAt ?? ""}
+              onChange={(e) => setAvailableAt!(e.target.value)}
+            />
+          </div>
+          <div className="cq-field">
+            <label htmlFor="due-at">Due at</label>
+            <input
+              id="due-at"
+              type="datetime-local"
+              className="cq-input"
+              value={dueAt ?? ""}
+              onChange={(e) => setDueAt!(e.target.value)}
+            />
+          </div>
+        </div>
+      ) : null}
     </>
   );
+}
+
+/**
+ * Convert an ISO timestamp from the DB to the format expected by
+ * <input type="datetime-local"> (YYYY-MM-DDTHH:mm, no timezone).
+ */
+function isoToLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  // Trim seconds + timezone — datetime-local doesn't accept them.
+  return iso.slice(0, 16);
+}
+
+/**
+ * Convert a datetime-local input value to a full ISO string the DB
+ * accepts. Returns null when the input is empty so the action clears
+ * the column.
+ */
+function localInputToIso(s: string): string | null {
+  if (!s) return null;
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
 }
 
 // ───────── BOT (existing flow — link out to the dedicated editor) ─────────
@@ -174,6 +234,8 @@ export function BotInspector(props: InspectorProps) {
   const [title, setTitle] = React.useState(props.node.title);
   const [points, setPoints] = React.useState(String(props.node.points ?? 25));
   const [isRequired, setIsRequired] = React.useState(props.node.is_required);
+  const [availableAt, setAvailableAt] = React.useState(isoToLocalInput(props.node.available_at));
+  const [dueAt, setDueAt] = React.useState(isoToLocalInput(props.node.due_at));
 
   const cfg = props.botConfig;
   const rubrics = props.rubrics ?? [];
@@ -198,6 +260,8 @@ export function BotInspector(props: InspectorProps) {
     setTitle(props.node.title);
     setPoints(String(props.node.points ?? 25));
     setIsRequired(props.node.is_required);
+    setAvailableAt(isoToLocalInput(props.node.available_at));
+    setDueAt(isoToLocalInput(props.node.due_at));
     setSystemPrompt(cfg?.system_prompt ?? "You are a helpful tutor. Probe assumptions; demand citations from the program knowledge base.");
     setLearnerInstructions(cfg?.learner_instructions ?? "");
     setModel(cfg?.model ?? "claude-haiku-4-5");
@@ -224,6 +288,8 @@ export function BotInspector(props: InspectorProps) {
         title,
         points: Number(points),
         isRequired,
+        availableAt: localInputToIso(availableAt),
+        dueAt: localInputToIso(dueAt),
       }),
       updateBotConfig({
         nodeId: props.node.id,
@@ -271,6 +337,10 @@ export function BotInspector(props: InspectorProps) {
         setPoints={setPoints}
         isRequired={isRequired}
         setIsRequired={setIsRequired}
+        availableAt={availableAt}
+        setAvailableAt={setAvailableAt}
+        dueAt={dueAt}
+        setDueAt={setDueAt}
       />
 
       <div className="cq-field" style={{ marginTop: 12 }}>
@@ -460,6 +530,8 @@ export function ContentInspector(props: InspectorProps) {
   const [title, setTitle] = React.useState(props.node.title);
   const [points, setPoints] = React.useState(String(props.node.points ?? 0));
   const [isRequired, setIsRequired] = React.useState(props.node.is_required);
+  const [availableAt, setAvailableAt] = React.useState(isoToLocalInput(props.node.available_at));
+  const [dueAt, setDueAt] = React.useState(isoToLocalInput(props.node.due_at));
   const cfg = (props.node.config as { body_html?: string; reading_minutes?: number; require_completion_check?: boolean }) ?? {};
   const [bodyHtml, setBodyHtml] = React.useState(cfg.body_html ?? "<p></p>");
   const [readingMinutes, setReadingMinutes] = React.useState(String(cfg.reading_minutes ?? 5));
@@ -473,6 +545,8 @@ export function ContentInspector(props: InspectorProps) {
       title,
       points: Number(points),
       isRequired,
+      availableAt: localInputToIso(availableAt),
+      dueAt: localInputToIso(dueAt),
       config: {
         body_html: bodyHtml,
         reading_minutes: Number(readingMinutes) || 0,
@@ -497,6 +571,10 @@ export function ContentInspector(props: InspectorProps) {
         setPoints={setPoints}
         isRequired={isRequired}
         setIsRequired={setIsRequired}
+        availableAt={availableAt}
+        setAvailableAt={setAvailableAt}
+        dueAt={dueAt}
+        setDueAt={setDueAt}
       />
       <div className="cq-field">
         <label>Reading time (minutes)</label>
@@ -539,6 +617,8 @@ export function PdfInspector(props: InspectorProps) {
   const [title, setTitle] = React.useState(props.node.title);
   const [points, setPoints] = React.useState(String(props.node.points ?? 0));
   const [isRequired, setIsRequired] = React.useState(props.node.is_required);
+  const [availableAt, setAvailableAt] = React.useState(isoToLocalInput(props.node.available_at));
+  const [dueAt, setDueAt] = React.useState(isoToLocalInput(props.node.due_at));
   const cfg = (props.node.config as { storage_path?: string; filename?: string; require_acknowledgement?: boolean; bytes?: number }) ?? {};
   const [storagePath, setStoragePath] = React.useState(cfg.storage_path ?? "");
   const [filename, setFilename] = React.useState(cfg.filename ?? "");
@@ -591,6 +671,8 @@ export function PdfInspector(props: InspectorProps) {
       title,
       points: Number(points),
       isRequired,
+      availableAt: localInputToIso(availableAt),
+      dueAt: localInputToIso(dueAt),
       config: {
         storage_path: storagePath || undefined,
         filename: filename || undefined,
@@ -616,6 +698,10 @@ export function PdfInspector(props: InspectorProps) {
         setPoints={setPoints}
         isRequired={isRequired}
         setIsRequired={setIsRequired}
+        availableAt={availableAt}
+        setAvailableAt={setAvailableAt}
+        dueAt={dueAt}
+        setDueAt={setDueAt}
       />
       <div className="cq-field">
         <label>PDF</label>
@@ -673,6 +759,8 @@ export function LinkInspector(props: InspectorProps) {
   const [title, setTitle] = React.useState(props.node.title);
   const [points, setPoints] = React.useState(String(props.node.points ?? 0));
   const [isRequired, setIsRequired] = React.useState(props.node.is_required);
+  const [availableAt, setAvailableAt] = React.useState(isoToLocalInput(props.node.available_at));
+  const [dueAt, setDueAt] = React.useState(isoToLocalInput(props.node.due_at));
   const cfg = (props.node.config as { url?: string; description?: string; open_in_new_tab?: boolean; require_confirmation?: boolean }) ?? {};
   const [url, setUrl] = React.useState(cfg.url ?? "https://");
   const [description, setDescription] = React.useState(cfg.description ?? "");
@@ -691,6 +779,8 @@ export function LinkInspector(props: InspectorProps) {
       title,
       points: Number(points),
       isRequired,
+      availableAt: localInputToIso(availableAt),
+      dueAt: localInputToIso(dueAt),
       config: {
         url,
         description,
@@ -716,6 +806,10 @@ export function LinkInspector(props: InspectorProps) {
         setPoints={setPoints}
         isRequired={isRequired}
         setIsRequired={setIsRequired}
+        availableAt={availableAt}
+        setAvailableAt={setAvailableAt}
+        dueAt={dueAt}
+        setDueAt={setDueAt}
       />
       <div className="cq-field">
         <label htmlFor="url">URL</label>
@@ -768,6 +862,8 @@ export function SlidesInspector(props: InspectorProps) {
   const [title, setTitle] = React.useState(props.node.title);
   const [points, setPoints] = React.useState(String(props.node.points ?? 0));
   const [isRequired, setIsRequired] = React.useState(props.node.is_required);
+  const [availableAt, setAvailableAt] = React.useState(isoToLocalInput(props.node.available_at));
+  const [dueAt, setDueAt] = React.useState(isoToLocalInput(props.node.due_at));
   const cfg = (props.node.config as { slides?: Slide[] }) ?? {};
   const [slides, setSlides] = React.useState<Slide[]>(cfg.slides ?? [{ title: "Slide 1", body: "" }]);
 
@@ -798,6 +894,8 @@ export function SlidesInspector(props: InspectorProps) {
       title,
       points: Number(points),
       isRequired,
+      availableAt: localInputToIso(availableAt),
+      dueAt: localInputToIso(dueAt),
       config: { slides },
     });
     setPending(false);
@@ -818,6 +916,10 @@ export function SlidesInspector(props: InspectorProps) {
         setPoints={setPoints}
         isRequired={isRequired}
         setIsRequired={setIsRequired}
+        availableAt={availableAt}
+        setAvailableAt={setAvailableAt}
+        dueAt={dueAt}
+        setDueAt={setDueAt}
       />
       <div className="cq-field">
         <label>Slides ({slides.length})</label>
@@ -904,6 +1006,8 @@ export function MilestoneInspector(props: InspectorProps) {
   const [title, setTitle] = React.useState(props.node.title);
   const [points, setPoints] = React.useState(String(props.node.points ?? 0));
   const [isRequired, setIsRequired] = React.useState(props.node.is_required);
+  const [availableAt, setAvailableAt] = React.useState(isoToLocalInput(props.node.available_at));
+  const [dueAt, setDueAt] = React.useState(isoToLocalInput(props.node.due_at));
   const cfg = (props.node.config as { required_node_ids?: string[]; min_grade_percentage?: number; awards_certificate_id?: string | null }) ?? {};
   const [requiredIds, setRequiredIds] = React.useState<string[]>(cfg.required_node_ids ?? []);
   const [minGrade, setMinGrade] = React.useState(String(cfg.min_grade_percentage ?? 70));
@@ -920,6 +1024,8 @@ export function MilestoneInspector(props: InspectorProps) {
       title,
       points: Number(points),
       isRequired,
+      availableAt: localInputToIso(availableAt),
+      dueAt: localInputToIso(dueAt),
       config: {
         required_node_ids: requiredIds,
         min_grade_percentage: Number(minGrade) || 0,
@@ -946,6 +1052,10 @@ export function MilestoneInspector(props: InspectorProps) {
         isRequired={isRequired}
         setIsRequired={setIsRequired}
         hidePoints
+        availableAt={availableAt}
+        setAvailableAt={setAvailableAt}
+        dueAt={dueAt}
+        setDueAt={setDueAt}
       />
       <div className="cq-field">
         <label htmlFor="min-grade">Minimum grade percentage on required nodes</label>
@@ -1006,6 +1116,8 @@ export function CertInspector(props: InspectorProps) {
   const [title, setTitle] = React.useState(props.node.title);
   const [points, setPoints] = React.useState(String(props.node.points ?? 0));
   const [isRequired, setIsRequired] = React.useState(props.node.is_required);
+  const [availableAt, setAvailableAt] = React.useState(isoToLocalInput(props.node.available_at));
+  const [dueAt, setDueAt] = React.useState(isoToLocalInput(props.node.due_at));
   const [requiredIds, setRequiredIds] = React.useState<string[]>([]);
   const [minGrade, setMinGrade] = React.useState("80");
   const [requiresApproval, setRequiresApproval] = React.useState(false);
@@ -1061,6 +1173,8 @@ export function CertInspector(props: InspectorProps) {
       title,
       points: Number(points),
       isRequired,
+      availableAt: localInputToIso(availableAt),
+      dueAt: localInputToIso(dueAt),
     });
     if (!r1.ok) {
       setPending(false);
@@ -1099,6 +1213,10 @@ export function CertInspector(props: InspectorProps) {
         isRequired={isRequired}
         setIsRequired={setIsRequired}
         hidePoints
+        availableAt={availableAt}
+        setAvailableAt={setAvailableAt}
+        dueAt={dueAt}
+        setDueAt={setDueAt}
       />
       <div className="cq-field">
         <label>Certificate template</label>

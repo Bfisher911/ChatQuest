@@ -341,6 +341,8 @@ function PathBuilderInner({
               points: selectedNode.points ?? 0,
               is_required: selectedNode.is_required,
               config: (selectedNode.config as Record<string, unknown>) ?? {},
+              available_at: selectedNode.available_at,
+              due_at: selectedNode.due_at,
             }}
             siblings={initialNodes.map((n) => ({
               id: n.id,
