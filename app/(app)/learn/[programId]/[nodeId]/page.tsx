@@ -200,9 +200,42 @@ export default async function LearnNodePage({
   // Ensure or resume an attempt.
   const start = await startConversation(params.programId, params.nodeId);
   if (!start.ok) {
+    const isAttemptsExhausted = /all attempts used/i.test(start.error);
     return (
-      <div className="cq-page">
-        <div className="cq-form-error">{start.error}</div>
+      <div className="cq-page" style={{ maxWidth: 720 }}>
+        <div className="row" style={{ marginBottom: 16 }}>
+          <Btn sm ghost asChild>
+            <Link href={`/learn/${program.id}`}>
+              <Icon name="arrow" style={{ transform: "rotate(180deg)" }} /> JOURNEY
+            </Link>
+          </Btn>
+        </div>
+        <Eyebrow>{isAttemptsExhausted ? "ATTEMPTS EXHAUSTED" : "CANNOT START"}</Eyebrow>
+        <h1 className="cq-title-l" style={{ marginTop: 12, marginBottom: 16 }}>
+          {node.title.toUpperCase()}
+        </h1>
+        <p style={{ fontFamily: "var(--font-mono)", color: "var(--muted)", lineHeight: 1.5 }}>
+          {start.error}
+          {isAttemptsExhausted ? (
+            <>
+              <br />
+              Your previous attempt has been graded — you can review it below. If
+              your instructor enables retry, the option will appear automatically.
+            </>
+          ) : null}
+        </p>
+        <div className="row" style={{ gap: 8, marginTop: 20, flexWrap: "wrap" }}>
+          {isAttemptsExhausted ? (
+            <Btn asChild>
+              <Link href={`/learn/${program.id}/${node.id}/grade`}>
+                <Icon name="check" /> VIEW MY GRADE
+              </Link>
+            </Btn>
+          ) : null}
+          <Btn ghost asChild>
+            <Link href={`/learn/${program.id}`}>BACK TO JOURNEY</Link>
+          </Btn>
+        </div>
       </div>
     );
   }
