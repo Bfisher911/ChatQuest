@@ -18,6 +18,31 @@ const STATE_LABEL: Record<string, string> = {
   locked: "LOCKED",
 };
 
+/**
+ * Surfaces a due-date with the right urgency for the cassette UI.
+ * Returns null for completed nodes (the date no longer matters) or when
+ * there's no due_at set.
+ */
+function dueLabel(
+  dueAt: string | null,
+  state: string,
+): { kind: "overdue" | "soon" | "scheduled"; text: string } | null {
+  if (!dueAt) return null;
+  if (state === "completed") return null;
+  const due = new Date(dueAt).getTime();
+  if (Number.isNaN(due)) return null;
+  const now = Date.now();
+  const diffMs = due - now;
+  const dateStr = new Date(dueAt).toISOString().slice(0, 10);
+  if (diffMs < 0) return { kind: "overdue", text: `OVERDUE · ${dateStr}` };
+  const dayMs = 86_400_000;
+  if (diffMs < 2 * dayMs) {
+    const hr = Math.floor(diffMs / (3_600_000));
+    return { kind: "soon", text: hr < 24 ? `DUE IN ${hr}h` : `DUE SOON · ${dateStr}` };
+  }
+  return { kind: "scheduled", text: `DUE · ${dateStr}` };
+}
+
 const STATE_CTA: Record<string, string> = {
   available: "START",
   in_progress: "RESUME",
@@ -145,6 +170,18 @@ export default async function LearnerJourney({ params }: { params: { programId: 
     (nodes ?? []).find((n) => progress.get(n.id)?.state === "failed") ??
     (nodes ?? []).find((n) => progress.get(n.id)?.state === "available");
 
+  // Soonest open due date — surfaced in the journey header for urgency.
+  const upcoming = (nodes ?? [])
+    .map((n) => ({ n, p: progress.get(n.id), due: n.due_at ? new Date(n.due_at).getTime() : null }))
+    .filter((x) => x.due != null && x.p?.state !== "completed")
+    .sort((a, b) => (a.due! - b.due!))[0];
+  const overdueCount = (nodes ?? []).filter((n) => {
+    if (!n.due_at) return false;
+    const p = progress.get(n.id);
+    if (p?.state === "completed") return false;
+    return new Date(n.due_at).getTime() < Date.now();
+  }).length;
+
   return (
     <div className="cq-page">
       <Frame style={{ padding: 28, marginBottom: 24 }}>
@@ -166,6 +203,11 @@ export default async function LearnerJourney({ params }: { params: { programId: 
             {pct}% · {completedCount} / {total} COMPLETE
           </div>
           {inProgressCount > 0 ? <Chip ghost>{inProgressCount} IN PROGRESS</Chip> : null}
+          {overdueCount > 0 ? (
+            <Chip>{overdueCount} OVERDUE</Chip>
+          ) : upcoming?.n.due_at ? (
+            <Chip ghost>NEXT DUE · {new Date(upcoming.n.due_at).toISOString().slice(0, 10)}</Chip>
+          ) : null}
         </div>
 
         {recommended ? (
@@ -266,6 +308,36 @@ export default async function LearnerJourney({ params }: { params: { programId: 
                   SCORE · {Math.round(p.score_percentage)}%
                 </div>
               ) : null}
+              {(() => {
+                const due = dueLabel(n.due_at, state);
+                if (!due) return null;
+                const bg =
+                  due.kind === "overdue"
+                    ? "var(--ink)"
+                    : due.kind === "soon"
+                    ? "var(--soft)"
+                    : "transparent";
+                const fg = due.kind === "overdue" ? "var(--paper)" : "var(--ink)";
+                const border = due.kind === "scheduled" ? "var(--hair) solid var(--ink)" : "var(--hair) solid var(--ink)";
+                return (
+                  <div
+                    className="cq-mono"
+                    style={{
+                      fontSize: 11,
+                      marginTop: 6,
+                      padding: "3px 8px",
+                      background: bg,
+                      color: fg,
+                      border,
+                      display: "inline-block",
+                      width: "fit-content",
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    {due.text}
+                  </div>
+                );
+              })()}
               {p?.reasons && p.reasons.length > 0 && state === "locked" ? (
                 <div
                   className="cq-mono"
