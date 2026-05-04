@@ -1009,29 +1009,37 @@ export function CertInspector(props: InspectorProps) {
   const [requiredIds, setRequiredIds] = React.useState<string[]>([]);
   const [minGrade, setMinGrade] = React.useState("80");
   const [requiresApproval, setRequiresApproval] = React.useState(false);
+  const [templateId, setTemplateId] = React.useState<string | null>(null);
+  const [templates, setTemplates] = React.useState<{ id: string; name: string; slug: string }[]>([]);
   const [loaded, setLoaded] = React.useState(false);
 
-  // Load the certificate row that backs this node.
+  // Load the certificate row that backs this node + the org's template list.
   React.useEffect(() => {
     if (loaded) return;
     (async () => {
       const cfg = (props.node.config as { certificate_id?: string }) ?? {};
-      if (!cfg.certificate_id) {
-        setLoaded(true);
-        return;
-      }
       try {
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
-        const { data } = await supabase
-          .from("certificates")
-          .select("required_node_ids, min_grade_percentage, requires_instructor_approval")
-          .eq("id", cfg.certificate_id)
-          .maybeSingle();
-        if (data) {
-          setRequiredIds((data.required_node_ids as string[] | null) ?? []);
-          setMinGrade(String(data.min_grade_percentage ?? 80));
-          setRequiresApproval(!!data.requires_instructor_approval);
+        // All templates the caller can read (RLS scopes to their org).
+        const { data: tpls } = await supabase
+          .from("certificate_templates")
+          .select("id, name, slug")
+          .order("created_at", { ascending: true });
+        setTemplates((tpls ?? []) as { id: string; name: string; slug: string }[]);
+
+        if (cfg.certificate_id) {
+          const { data } = await supabase
+            .from("certificates")
+            .select("required_node_ids, min_grade_percentage, requires_instructor_approval, template_id")
+            .eq("id", cfg.certificate_id)
+            .maybeSingle();
+          if (data) {
+            setRequiredIds((data.required_node_ids as string[] | null) ?? []);
+            setMinGrade(String(data.min_grade_percentage ?? 80));
+            setRequiresApproval(!!data.requires_instructor_approval);
+            setTemplateId(data.template_id ?? null);
+          }
         }
       } finally {
         setLoaded(true);
@@ -1067,6 +1075,7 @@ export function CertInspector(props: InspectorProps) {
       requiredNodeIds: requiredIds,
       minGradePercentage: Number(minGrade) || 0,
       requiresInstructorApproval: requiresApproval,
+      templateId: templateId ?? undefined,
     });
     setPending(false);
     if (!r2.ok) {
@@ -1091,6 +1100,39 @@ export function CertInspector(props: InspectorProps) {
         setIsRequired={setIsRequired}
         hidePoints
       />
+      <div className="cq-field">
+        <label>Certificate template</label>
+        {templates.length === 0 ? (
+          <div className="cq-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
+            Loading templates…
+          </div>
+        ) : (
+          <>
+            <select
+              className="cq-input"
+              value={templateId ?? ""}
+              onChange={(e) => setTemplateId(e.target.value || null)}
+            >
+              <option value="">Default (first template in org)</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} · {t.slug}
+                </option>
+              ))}
+            </select>
+            <div
+              className="cq-mono"
+              style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}
+            >
+              <a href="/org/cert-template" style={{ color: "inherit", textDecoration: "underline" }}>
+                Edit templates
+              </a>
+              {" · "}
+              controls signer name, body text, and org logo.
+            </div>
+          </>
+        )}
+      </div>
       <div className="cq-field">
         <label>Minimum grade percentage on required nodes</label>
         <input
