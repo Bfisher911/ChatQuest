@@ -187,6 +187,96 @@
   color-scheme: dark;
 }
 
+/* ───────── Theme: sepia ─────────
+ * Warm paper tones — soft cream background, deep brown ink, sienna
+ * accent. Reading-friendly, low blue-light. Sentence case + rounded
+ * corners like clean. */
+[data-theme="sepia"] {
+  --ink: #2a1f17;
+  --paper: #f3ebde;
+  --soft: #ebe1cf;
+  --muted: #6e5c45;
+  --accent: #b04a2a;
+  --accent-fg: #f8f1e3;
+  --line: #c9b896;
+
+  --frame: 1px;
+  --hair: 1px;
+  --radius: 8px;
+
+  --shadow-sm: 0 1px 2px rgba(42, 31, 23, 0.06), 0 1px 1px rgba(42, 31, 23, 0.04);
+  --shadow-md: 0 4px 12px rgba(42, 31, 23, 0.08), 0 1px 2px rgba(42, 31, 23, 0.06);
+  --hover-translate: -1px;
+  --hover-shadow: 0 6px 18px rgba(42, 31, 23, 0.10);
+
+  --tt-display: none;
+  --tt-button: none;
+  --tt-chip: none;
+  --tt-eyebrow: uppercase;
+  --font-display: var(--font-sans);
+  --ls-title: -0.015em;
+  --chip-bullet: "";
+
+  --font-sans: "Iowan Old Style", "Palatino", "Georgia", serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --font-pixel: "Iowan Old Style", "Palatino", serif;
+}
+
+/* ───────── Theme: high-contrast ─────────
+ * WCAG-leaning theme: pure black on pure white, 2px borders, 14pt body
+ * minimum, strong focus rings, no shadow-only elevation, no faded
+ * "muted" text. Designed for users who need maximum legibility — low
+ * vision, bright sunlight, accessibility-first preference. */
+[data-theme="high-contrast"] {
+  --ink: #000000;
+  --paper: #ffffff;
+  --soft: #ffffff;
+  --muted: #1a1a1a; /* No light grey — even "muted" text stays nearly black. */
+  --accent: #0033cc;
+  --accent-fg: #ffffff;
+  --line: #000000;
+
+  --frame: 2px;
+  --hair: 2px;
+  --radius: 0;
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --hover-translate: 0;
+  --hover-shadow: 0 0 0 3px var(--accent);
+
+  --tt-display: none;
+  --tt-button: none;
+  --tt-chip: none;
+  --tt-eyebrow: uppercase;
+  --font-display: var(--font-sans);
+  --ls-title: -0.01em;
+  --chip-bullet: "";
+
+  --font-sans: "Atkinson Hyperlegible", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --font-pixel: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+/* High-contrast: bump base text size + tighten focus rings everywhere. */
+[data-theme="high-contrast"] body {
+  font-size: 16px;
+}
+[data-theme="high-contrast"] :focus-visible {
+  outline: 3px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+[data-theme="high-contrast"] .cq-btn,
+[data-theme="high-contrast"] .cq-input,
+[data-theme="high-contrast"] .cq-textarea,
+[data-theme="high-contrast"] .cq-select {
+  border-width: 2px;
+}
+[data-theme="high-contrast"] a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ───────── Theme: terminal ─────────
  * Retro green-on-black mono everywhere. A confident hacker aesthetic. */
 [data-theme="terminal"] {

@@ -7,7 +7,7 @@
 // Both cookies are also mirrored to localStorage by the client provider
 // for instant client-side updates without a server roundtrip.
 
-export const THEMES = ["system", "clean", "dark", "brutalist", "terminal"] as const;
+export const THEMES = ["system", "clean", "dark", "sepia", "brutalist", "terminal", "high-contrast"] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const DENSITIES = ["cozy", "compact", "comfy"] as const;
@@ -43,6 +43,10 @@ export const THEME_LABELS: Record<Theme, { name: string; blurb: string }> = {
     name: "Dark",
     blurb: "Dark palette, easy on the eyes for long sessions.",
   },
+  sepia: {
+    name: "Sepia",
+    blurb: "Warm paper tones. Easy reading, like a well-worn paperback.",
+  },
   brutalist: {
     name: "Brutalist",
     blurb: "Heavy borders, ALL CAPS, the original Chatrail look.",
@@ -50,6 +54,10 @@ export const THEME_LABELS: Record<Theme, { name: string; blurb: string }> = {
   terminal: {
     name: "Terminal",
     blurb: "Retro green-on-black mono. For the keyboard maximalists.",
+  },
+  "high-contrast": {
+    name: "High contrast",
+    blurb: "Maximum legibility — bold borders, strong focus rings, larger text.",
   },
 };
 

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveRole } from "@/lib/auth/active-role";
 import { Eyebrow, Frame, Btn, Icon, Chip } from "@/components/brutalist";
 import { OrgSettingsForm } from "./settings-form";
+import { BrandColorForm } from "./brand-color-form";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function OrgSettingsPage() {
   const supabase = createClient();
   const { data: org } = await supabase
     .from("organizations")
-    .select("id, name, slug, org_type, plan_code, created_at, logo_url")
+    .select("id, name, slug, org_type, plan_code, created_at, logo_url, accent_color")
     .eq("id", session.activeOrganizationId)
     .single();
 
@@ -73,6 +74,19 @@ export default async function OrgSettingsPage() {
             slug: org.slug,
             orgType: (org.org_type ?? "other") as "school" | "company" | "training" | "other",
           }}
+        />
+      </Frame>
+
+      <Frame style={{ padding: 24, marginBottom: 24 }}>
+        <Eyebrow>BRAND COLOR</Eyebrow>
+        <p style={{ fontFamily: "var(--font-mono)", marginTop: 8, marginBottom: 4, color: "var(--muted)", fontSize: 12 }}>
+          Pick the accent color used across the app for primary buttons,
+          links, focus rings, and progress bars. Applies to every member
+          in this org. Personal theme choice still controls everything else.
+        </p>
+        <BrandColorForm
+          organizationId={org.id}
+          initialAccent={(org.accent_color as string | null) ?? null}
         />
       </Frame>
 

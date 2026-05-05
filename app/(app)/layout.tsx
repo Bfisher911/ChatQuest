@@ -27,8 +27,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq("user_id", user.id)
     .eq("is_read", false);
 
+  // Active org's brand-accent color (if set). Applied as an inline CSS
+  // variable on the shell so it overrides the active theme's --accent
+  // for everyone in this org. Falls back to the theme baseline when null.
+  let orgAccent: string | null = null;
+  if (user.activeOrganizationId) {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("accent_color")
+      .eq("id", user.activeOrganizationId)
+      .maybeSingle();
+    orgAccent = (org?.accent_color as string | null) ?? null;
+  }
+
+  // Inline style only when an accent is set — keeps the DOM clean otherwise.
+  const shellStyle = orgAccent
+    ? ({ "--accent": orgAccent } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className="cq-shell">
+    <div className="cq-shell" style={shellStyle}>
       <Header
         userEmail={user.email}
         displayName={user.displayName ?? user.fullName ?? user.email}

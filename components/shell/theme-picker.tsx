@@ -220,6 +220,8 @@ function ThemeSwatch({ theme }: { theme: Theme }) {
     brutalist: { paper: "#ffffff", ink: "#000000", accent: "#000000" },
     clean: { paper: "#ffffff", ink: "#0f1219", accent: "#2657ff", line: "#d8dde6" },
     dark: { paper: "#0f1219", ink: "#e6e9ef", accent: "#6c8cff", line: "#2a3140" },
+    sepia: { paper: "#f3ebde", ink: "#2a1f17", accent: "#b04a2a", line: "#c9b896" },
+    "high-contrast": { paper: "#ffffff", ink: "#000000", accent: "#0033cc" },
     terminal: { paper: "#000000", ink: "#33ff66", accent: "#33ff66" },
   };
   const p = palettes[theme];

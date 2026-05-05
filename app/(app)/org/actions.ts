@@ -53,6 +53,47 @@ export async function updateOrganization(input: z.infer<typeof updateOrgSchema>)
   return { ok: true as const };
 }
 
+// ─────────── Org brand accent color ───────────
+//
+// Org admins can paint the UI in their brand color. The hex string is
+// stored on `organizations.accent_color` (with a CHECK constraint
+// keeping the format valid) and applied at the org-shell level via an
+// inline CSS variable on the wrapper div. Members of the org see the
+// custom accent everywhere; visitors and other-org users see the
+// theme's baseline accent.
+
+const setAccentSchema = z.object({
+  organizationId: z.string().uuid(),
+  accentColor: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i, "Use a hex color like #2657ff")
+    .nullable(),
+});
+
+export async function setOrgAccentColor(input: z.infer<typeof setAccentSchema>) {
+  const session = await getActiveRole();
+  if (!session) return { ok: false as const, error: "Not signed in" };
+  if (!["org_admin", "super_admin"].includes(session.activeRole)) {
+    return { ok: false as const, error: "Only org admins can change the brand color." };
+  }
+  const parsed = setAccentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (parsed.data.organizationId !== session.activeOrganizationId && !session.user.isSuperAdmin) {
+    return { ok: false as const, error: "Cross-org edit refused." };
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("organizations")
+    .update({ accent_color: parsed.data.accentColor })
+    .eq("id", parsed.data.organizationId);
+  if (error) return { ok: false as const, error: error.message };
+
+  // Layout-wide revalidation so every member sees the new accent on next nav.
+  revalidatePath("/", "layout");
+  return { ok: true as const, accentColor: parsed.data.accentColor };
+}
+
 // ─────────── Member role + active state ───────────
 
 const updateMemberSchema = z.object({
