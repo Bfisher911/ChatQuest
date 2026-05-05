@@ -493,7 +493,8 @@
 /* The brutalist hero crops giant ALL-CAPS title with very tight leading
  * (line-height: 0.9). In clean / dark / system the same headline reads
  * better with looser leading and a darker accent on the period. */
-:not([data-theme="brutalist"]) .cq-hero__title {
+:not([data-theme="brutalist"]) .cq-hero__title,
+:not([data-theme="brutalist"]) .cq-auth__art h2 {
   text-transform: none;
   line-height: 1.05;
   letter-spacing: -0.025em;
