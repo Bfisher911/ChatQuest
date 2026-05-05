@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Btn, Icon } from "@/components/brutalist";
+import { Btn, Chip, Icon } from "@/components/brutalist";
 import { createBotNode, updateBotNode } from "../actions";
+import { estimateCostUsd } from "@/lib/llm/cost";
 
 export interface BotNodeFormProps {
   programId: string;
@@ -34,6 +35,11 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
   // Track dirty state so the inline preview panel can warn the creator
   // they're testing the LAST SAVED config, not their unsaved edits.
   const [dirty, setDirty] = React.useState(false);
+  // Mirror cost-relevant inputs into state so we can compute a live cost
+  // estimate without making each input fully controlled.
+  const [model, setModel] = React.useState<string>(cfg?.model ?? "claude-haiku-4-5");
+  const [tokenBudget, setTokenBudget] = React.useState<number>(cfg?.token_budget ?? 8000);
+  const [attemptsAllowed, setAttemptsAllowed] = React.useState<number>(cfg?.attempts_allowed ?? 2);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -114,7 +120,7 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
       <div className="cq-grid cq-grid--2" style={{ gap: 12 }}>
         <div className="cq-field">
           <label htmlFor="model">Model</label>
-          <select id="model" name="model" defaultValue={cfg?.model ?? "claude-haiku-4-5"} className="cq-select">
+          <select id="model" name="model" value={model} onChange={(e) => setModel(e.target.value)} className="cq-select">
             <optgroup label="Anthropic">
               <option value="claude-haiku-4-5">claude-haiku-4-5</option>
               <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
@@ -143,8 +149,15 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
         </div>
         <div className="cq-field">
           <label htmlFor="tokenBudget">Token budget (per attempt)</label>
-          <input id="tokenBudget" name="tokenBudget" type="number" min={500}
-            defaultValue={cfg?.token_budget ?? 8000} className="cq-input" />
+          <input
+            id="tokenBudget"
+            name="tokenBudget"
+            type="number"
+            min={500}
+            value={tokenBudget}
+            onChange={(e) => setTokenBudget(Number(e.target.value) || 0)}
+            className="cq-input"
+          />
         </div>
         <div className="cq-field">
           <label htmlFor="maxTokens">Max tokens per response</label>
@@ -153,8 +166,15 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
         </div>
         <div className="cq-field">
           <label htmlFor="attemptsAllowed">Attempts allowed</label>
-          <input id="attemptsAllowed" name="attemptsAllowed" type="number" min={1}
-            defaultValue={cfg?.attempts_allowed ?? 2} className="cq-input" />
+          <input
+            id="attemptsAllowed"
+            name="attemptsAllowed"
+            type="number"
+            min={1}
+            value={attemptsAllowed}
+            onChange={(e) => setAttemptsAllowed(Number(e.target.value) || 0)}
+            className="cq-input"
+          />
         </div>
         <div className="cq-field">
           <label htmlFor="points">Points</label>
@@ -162,6 +182,8 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
             defaultValue={node?.points ?? 25} className="cq-input" />
         </div>
       </div>
+
+      <CostEstimate model={model} tokenBudget={tokenBudget} attemptsAllowed={attemptsAllowed} />
 
       <div className="cq-field">
         <label htmlFor="rubricId">Rubric (for AI grading)</label>
@@ -197,5 +219,75 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
         </Btn>
       </div>
     </form>
+  );
+}
+
+/**
+ * Live cost estimate for the current model + token-budget + attempts combo.
+ *
+ * The cost helper is per-million-tokens and split prompt vs completion. Real
+ * conversations use both, so we model a 70/30 split which is broadly
+ * accurate for instruction-following chat (heavier on prompt + KB context).
+ *
+ * Shows two numbers: per-attempt cost and per-learner total assuming all
+ * attempts are used. Both are upper-bound — real usage is typically lower
+ * because conversations end before the budget is exhausted.
+ */
+function CostEstimate({
+  model,
+  tokenBudget,
+  attemptsAllowed,
+}: {
+  model: string;
+  tokenBudget: number;
+  attemptsAllowed: number;
+}) {
+  const promptShare = Math.round(tokenBudget * 0.7);
+  const completionShare = tokenBudget - promptShare;
+  const perAttempt = estimateCostUsd(model, promptShare, completionShare);
+  const perLearner = perAttempt * Math.max(1, attemptsAllowed);
+  const fmt = (n: number) =>
+    n < 0.01 ? "<$0.01" : n < 1 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`;
+  const isFree = perAttempt === 0; // unknown model in COST_PER_M_TOKENS
+
+  return (
+    <div
+      style={{
+        padding: 12,
+        border: "var(--hair) solid var(--ink)",
+        background: "var(--soft)",
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}
+    >
+      <Chip ghost>EST. COST</Chip>
+      {isFree ? (
+        <span className="cq-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
+          Pricing for <strong>{model}</strong> not in cost table — usage is still
+          tracked but the dollar estimate is unavailable.
+        </span>
+      ) : (
+        <>
+          <span className="cq-mono" style={{ fontSize: 12 }}>
+            <strong>{fmt(perAttempt)}</strong> per attempt
+          </span>
+          <span className="cq-mono" style={{ fontSize: 12, color: "var(--muted)" }}>
+            ·
+          </span>
+          <span className="cq-mono" style={{ fontSize: 12 }}>
+            <strong>{fmt(perLearner)}</strong> per learner ({attemptsAllowed}{" "}
+            {attemptsAllowed === 1 ? "attempt" : "attempts"})
+          </span>
+          <span
+            className="cq-mono"
+            style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}
+          >
+            Upper-bound · 70/30 prompt/completion split
+          </span>
+        </>
+      )}
+    </div>
   );
 }
