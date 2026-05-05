@@ -24,6 +24,7 @@ export interface BotNodeFormProps {
       attempts_allowed: number;
       rubric_id: string | null;
       use_program_kb?: boolean | null;
+      ai_grading_enabled?: boolean | null;
     } | null;
   };
 }
@@ -219,6 +220,45 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
               On every learner turn, retrieve top-k relevant chunks from this
               Chatrail&apos;s KB collection and inject them into the bot&apos;s context.
               Disable for free-form bots that don&apos;t need source-grounding.
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <div className="cq-field">
+        <label
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "flex-start",
+            cursor: "pointer",
+            padding: "10px 12px",
+            border: "var(--hair) solid var(--ink)",
+            background: "var(--paper)",
+          }}
+        >
+          <input
+            type="checkbox"
+            name="aiGradingEnabled"
+            defaultChecked={cfg?.ai_grading_enabled ?? true}
+            style={{ marginTop: 3 }}
+          />
+          <div>
+            <div style={{ fontFamily: "var(--font-sans)", fontWeight: 700 }}>
+              AI grading suggestion on submit
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                color: "var(--muted)",
+                marginTop: 4,
+              }}
+            >
+              On submit, summarize the conversation and suggest a per-criterion
+              rubric score so the instructor opens the grader panel pre-filled.
+              Disable to skip the AI summary call entirely (saves tokens, but
+              the grader sees a blank panel).
             </div>
           </div>
         </label>

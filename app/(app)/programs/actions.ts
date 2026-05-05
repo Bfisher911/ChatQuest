@@ -127,6 +127,12 @@ const createBotNodeSchema = z.object({
     .union([z.literal("on"), z.literal("true"), z.literal("false"), z.boolean()])
     .transform((v) => v === true || v === "on" || v === "true")
     .default(true as unknown as boolean),
+  // Whether submit triggers an AI summary + suggested rubric score. Off
+  // for bots where AI scoring is inappropriate (e.g. raw-prompt practice).
+  aiGradingEnabled: z
+    .union([z.literal("on"), z.literal("true"), z.literal("false"), z.boolean()])
+    .transform((v) => v === true || v === "on" || v === "true")
+    .default(true as unknown as boolean),
 });
 
 export async function createBotNode(formData: FormData) {
@@ -145,6 +151,7 @@ export async function createBotNode(formData: FormData) {
     points: formData.get("points") ?? undefined,
     rubricId: formData.get("rubricId") || null,
     useProgramKb: formData.get("useProgramKb") ?? undefined,
+    aiGradingEnabled: formData.get("aiGradingEnabled") ?? undefined,
   });
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
@@ -189,6 +196,7 @@ export async function createBotNode(formData: FormData) {
     attempts_allowed: parsed.data.attemptsAllowed,
     rubric_id: parsed.data.rubricId || null,
     use_program_kb: parsed.data.useProgramKb,
+    ai_grading_enabled: parsed.data.aiGradingEnabled,
   });
   if (cfgErr) return { ok: false as const, error: cfgErr.message };
 
@@ -216,6 +224,7 @@ export async function updateBotNode(formData: FormData) {
     points: formData.get("points") ?? undefined,
     rubricId: formData.get("rubricId") || null,
     useProgramKb: formData.get("useProgramKb") ?? undefined,
+    aiGradingEnabled: formData.get("aiGradingEnabled") ?? undefined,
   });
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const supabase = createClient();
@@ -238,6 +247,7 @@ export async function updateBotNode(formData: FormData) {
       attempts_allowed: parsed.data.attemptsAllowed,
       rubric_id: parsed.data.rubricId || null,
       use_program_kb: parsed.data.useProgramKb,
+      ai_grading_enabled: parsed.data.aiGradingEnabled,
     })
     .eq("node_id", parsed.data.nodeId);
   if (cfgErr) return { ok: false as const, error: cfgErr.message };
