@@ -173,7 +173,50 @@ export function ThemePicker({ initialTheme }: { initialTheme: Theme }) {
  * a real visual signal of the choice instead of just a name.
  */
 function ThemeSwatch({ theme }: { theme: Theme }) {
-  const palettes: Record<Theme, { paper: string; ink: string; accent: string; line?: string }> = {
+  // The "system" theme uses a diagonal half-light / half-dark split so the
+  // user sees that it's "auto" rather than a fixed palette.
+  if (theme === "system") {
+    return (
+      <span
+        aria-hidden
+        style={{
+          width: 28,
+          height: 28,
+          flexShrink: 0,
+          border: "1px solid var(--line)",
+          borderRadius: 4,
+          background:
+            "linear-gradient(135deg, #ffffff 0%, #ffffff 49%, #0f1219 51%, #0f1219 100%)",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: 4,
+            left: 4,
+            width: 6,
+            height: 6,
+            borderRadius: 999,
+            background: "#2657ff",
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            bottom: 4,
+            right: 4,
+            width: 6,
+            height: 6,
+            borderRadius: 999,
+            background: "#6c8cff",
+          }}
+        />
+      </span>
+    );
+  }
+  const palettes: Record<Exclude<Theme, "system">, { paper: string; ink: string; accent: string; line?: string }> = {
     brutalist: { paper: "#ffffff", ink: "#000000", accent: "#000000" },
     clean: { paper: "#ffffff", ink: "#0f1219", accent: "#2657ff", line: "#d8dde6" },
     dark: { paper: "#0f1219", ink: "#e6e9ef", accent: "#6c8cff", line: "#2a3140" },

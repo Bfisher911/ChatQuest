@@ -7,7 +7,7 @@
 // Both cookies are also mirrored to localStorage by the client provider
 // for instant client-side updates without a server roundtrip.
 
-export const THEMES = ["brutalist", "clean", "dark", "terminal"] as const;
+export const THEMES = ["system", "clean", "dark", "brutalist", "terminal"] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const DENSITIES = ["cozy", "compact", "comfy"] as const;
@@ -16,7 +16,7 @@ export type Density = (typeof DENSITIES)[number];
 export const THEME_COOKIE = "cq-theme";
 export const DENSITY_COOKIE = "cq-density";
 
-export const DEFAULT_THEME: Theme = "clean";
+export const DEFAULT_THEME: Theme = "system";
 export const DEFAULT_DENSITY: Density = "cozy";
 
 export function isTheme(value: string | null | undefined): value is Theme {
@@ -31,9 +31,9 @@ export function isDensity(value: string | null | undefined): value is Density {
  * Human-readable labels for the picker UI.
  */
 export const THEME_LABELS: Record<Theme, { name: string; blurb: string }> = {
-  brutalist: {
-    name: "Brutalist",
-    blurb: "Heavy borders, ALL CAPS, the original Chatrail look.",
+  system: {
+    name: "System",
+    blurb: "Follows your OS appearance — clean during the day, dark at night.",
   },
   clean: {
     name: "Clean",
@@ -42,6 +42,10 @@ export const THEME_LABELS: Record<Theme, { name: string; blurb: string }> = {
   dark: {
     name: "Dark",
     blurb: "Dark palette, easy on the eyes for long sessions.",
+  },
+  brutalist: {
+    name: "Brutalist",
+    blurb: "Heavy borders, ALL CAPS, the original Chatrail look.",
   },
   terminal: {
     name: "Terminal",

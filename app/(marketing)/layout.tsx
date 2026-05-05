@@ -1,7 +1,10 @@
 import * as React from "react";
 import Link from "next/link";
+import { ThemePicker } from "@/components/shell/theme-picker";
+import { getThemeFromCookies } from "@/lib/theme/server";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+  const initialTheme = getThemeFromCookies();
   return (
     <div className="cq-shell">
       <header className="cq-header">
@@ -17,18 +20,19 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <Link href="/for-corporate">For Corporate</Link>
           </nav>
         </div>
-        <div className="row" style={{ gap: 8 }}>
-          <Link href="/login" className="cq-btn cq-btn--ghost cq-btn--sm">SIGN IN</Link>
-          <Link href="/signup" className="cq-btn cq-btn--sm">START FREE</Link>
+        <div className="row" style={{ gap: 8, alignItems: "center" }}>
+          <ThemePicker initialTheme={initialTheme} />
+          <Link href="/login" className="cq-btn cq-btn--ghost cq-btn--sm">Sign in</Link>
+          <Link href="/signup" className="cq-btn cq-btn--sm">Start free</Link>
         </div>
       </header>
       <main style={{ flex: 1, overflowY: "auto" }}>{children}</main>
       <footer className="cq-footer">
-        <div>© 2026 CHATRAIL · ALL RIGHTS RESERVED</div>
+        <div>© 2026 Chatrail · All rights reserved</div>
         <div className="row" style={{ gap: 18 }}>
-          <Link href="/docs">DOCS</Link>
-          <Link href="/terms">TERMS</Link>
-          <Link href="/privacy">PRIVACY</Link>
+          <Link href="/docs">Docs</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="/privacy">Privacy</Link>
           <Link href="/aup">AUP</Link>
         </div>
       </footer>

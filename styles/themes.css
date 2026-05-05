@@ -54,6 +54,70 @@
   --line: var(--ink);
 }
 
+/* ───────── Theme: system ─────────
+ * Follows OS appearance: clean by day, dark at night. Pure CSS via
+ * prefers-color-scheme — no JS, no flash. The cookie stores "system"
+ * and the layout writes data-theme="system" on <html>; the media
+ * query below decides which palette to apply.
+ *
+ * Defined first so the media query can override it. */
+[data-theme="system"] {
+  --ink: #0f1219;
+  --paper: #ffffff;
+  --soft: #f5f6f8;
+  --muted: #5b6472;
+  --accent: #2657ff;
+  --accent-fg: #ffffff;
+  --line: #d8dde6;
+
+  --frame: 1px;
+  --hair: 1px;
+  --radius: 10px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 18, 25, 0.04), 0 1px 1px rgba(15, 18, 25, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 18, 25, 0.06), 0 1px 2px rgba(15, 18, 25, 0.04);
+  --hover-translate: -1px;
+  --hover-shadow: 0 8px 24px rgba(15, 18, 25, 0.10);
+
+  --tt-display: none;
+  --tt-button: none;
+  --tt-chip: none;
+  --tt-eyebrow: uppercase;
+  --font-display: var(--font-sans);
+  --ls-title: -0.015em;
+  --chip-bullet: "";
+
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --font-pixel: "Inter", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    --ink: #e6e9ef;
+    --paper: #0f1219;
+    --soft: #1a1f2b;
+    --muted: #a4abb8;
+    --accent: #6c8cff;
+    --accent-fg: #0f1219;
+    --line: #2a3140;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.35);
+    --hover-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+  /* Soft-card backgrounds need an explicit fill in dark since the
+     border-only treatment from clean disappears against the dark page. */
+  [data-theme="system"] .cq-frame,
+  [data-theme="system"] .cq-cassette {
+    background: var(--soft);
+  }
+  [data-theme="system"] body {
+    background: var(--paper);
+  }
+}
+
 /* ───────── Theme: clean ─────────
  * Modern SaaS aesthetic — soft borders, rounded corners, generous
  * whitespace, sentence case. Inter + JetBrains Mono. The same components
@@ -330,18 +394,43 @@
   border-radius: 999px;
 }
 
-/* Density modifiers (orthogonal to theme). */
+/* Density modifiers (orthogonal to theme).
+ *
+ * --gap     drives grid spacing between cassettes
+ * --pad     drives page-level padding
+ * --card-pad drives cassette/frame internal padding
+ * --row-pad drives table cell + composer padding
+ *
+ * Compact gives a denser power-user feel; Comfy is calmer reading. */
 [data-density="compact"] {
   --gap: 14px;
-  --pad: 14px;
-}
-[data-density="comfy"] {
-  --gap: 36px;
-  --pad: 36px;
+  --pad: 18px;
+  --card-pad: 14px;
+  --row-pad: 8px 10px;
 }
 [data-density="cozy"] {
   --gap: 24px;
-  --pad: 24px;
+  --pad: 28px;
+  --card-pad: 22px;
+  --row-pad: 12px 14px;
+}
+[data-density="comfy"] {
+  --gap: 36px;
+  --pad: 40px;
+  --card-pad: 30px;
+  --row-pad: 16px 18px;
+}
+
+/* Wire density tokens into actual layout. */
+.cq-page {
+  padding: var(--pad);
+}
+.cq-cassette {
+  padding: var(--card-pad);
+}
+:not([data-theme="brutalist"]) .cq-table th,
+:not([data-theme="brutalist"]) .cq-table td {
+  padding: var(--row-pad);
 }
 
 /* Brutalist explicitly: keep the pixel ■ on chips, the boxed logo, the
