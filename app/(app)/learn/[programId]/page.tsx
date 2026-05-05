@@ -96,7 +96,7 @@ export default async function LearnerJourney({ params }: { params: { programId: 
     );
   }
 
-  const [{ data: nodes }, { data: edges }, { data: rules }, { data: subs }] = await Promise.all([
+  const [{ data: nodes }, { data: edges }, { data: rules }, { data: subs }, { data: botConfigs }] = await Promise.all([
     supabase
       .from("path_nodes")
       .select("id, type, title, points, display_order, available_at, due_at, is_required")
@@ -114,7 +114,22 @@ export default async function LearnerJourney({ params }: { params: { programId: 
       .select("node_id, attempt_number, conversation_id")
       .eq("program_id", params.programId)
       .eq("learner_id", session.user.id),
+    supabase
+      .from("chatbot_configs")
+      .select("node_id, attempts_allowed"),
   ]);
+
+  // Per-bot-node attempts cap + how many the learner has used. Lets the
+  // cassette show "ATTEMPTS · 2/2" and lock the CTA when exhausted.
+  const attemptsAllowedByNode = new Map<string, number>();
+  for (const c of botConfigs ?? []) {
+    if (c.node_id) attemptsAllowedByNode.set(c.node_id, Number(c.attempts_allowed ?? 1));
+  }
+  const attemptsUsedByNode = new Map<string, number>();
+  for (const s of subs ?? []) {
+    const cur = attemptsUsedByNode.get(s.node_id) ?? 0;
+    if ((s.attempt_number ?? 0) > cur) attemptsUsedByNode.set(s.node_id, s.attempt_number);
+  }
 
   // Pull statuses + percentages — submissions row alone isn't enough.
   const subIds = (subs ?? []).map((s) => s.conversation_id);
@@ -347,19 +362,72 @@ export default async function LearnerJourney({ params }: { params: { programId: 
                 </div>
               ) : null}
 
+              {/* Attempts indicator — only relevant on bot nodes after the
+                  learner has used at least one attempt. Hidden when fresh. */}
+              {n.type === "bot" && (attemptsUsedByNode.get(n.id) ?? 0) > 0 ? (
+                (() => {
+                  const used = attemptsUsedByNode.get(n.id) ?? 0;
+                  const allowed = attemptsAllowedByNode.get(n.id) ?? 1;
+                  const exhausted = used >= allowed;
+                  return (
+                    <div
+                      className="cq-mono"
+                      style={{
+                        fontSize: 11,
+                        marginTop: 6,
+                        color: exhausted ? "var(--ink)" : "var(--muted)",
+                        fontWeight: exhausted ? 700 : 400,
+                      }}
+                    >
+                      ATTEMPTS · {used}/{allowed}
+                      {exhausted ? " · EXHAUSTED" : ""}
+                    </div>
+                  );
+                })()
+              ) : null}
+
               <div style={{ marginTop: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {isLocked ? (
-                  <Btn sm ghost disabled>
-                    <Icon name="lock" /> LOCKED
-                  </Btn>
-                ) : (
-                  <Btn sm={!isFailed} accent={isFailed} asChild>
-                    <Link href={`/learn/${program.id}/${n.id}`}>
-                      {ctaLabel} <Icon name="arrow" />
-                    </Link>
-                  </Btn>
-                )}
-                {(isDone || isFailed) && n.type === "bot" ? (
+                {(() => {
+                  const allowed = attemptsAllowedByNode.get(n.id) ?? 1;
+                  const used = attemptsUsedByNode.get(n.id) ?? 0;
+                  const attemptsExhausted =
+                    n.type === "bot" && !isDone && used >= allowed;
+
+                  if (isLocked) {
+                    return (
+                      <Btn sm ghost disabled>
+                        <Icon name="lock" /> LOCKED
+                      </Btn>
+                    );
+                  }
+                  if (attemptsExhausted) {
+                    // No more attempts — primary action is now reviewing the
+                    // grade. Don't dangle a TRY AGAIN CTA the API would refuse.
+                    return n.type === "bot" ? (
+                      <Btn sm asChild>
+                        <Link href={`/learn/${program.id}/${n.id}/grade`}>
+                          VIEW GRADE <Icon name="arrow" />
+                        </Link>
+                      </Btn>
+                    ) : (
+                      <Btn sm ghost disabled>
+                        <Icon name="lock" /> NO ATTEMPTS LEFT
+                      </Btn>
+                    );
+                  }
+                  return (
+                    <Btn sm={!isFailed} accent={isFailed} asChild>
+                      <Link href={`/learn/${program.id}/${n.id}`}>
+                        {ctaLabel} <Icon name="arrow" />
+                      </Link>
+                    </Btn>
+                  );
+                })()}
+                {(isDone || isFailed) &&
+                n.type === "bot" &&
+                // Already-exhausted nodes show VIEW GRADE as the primary CTA,
+                // so don't render a duplicate.
+                !(n.type === "bot" && (attemptsUsedByNode.get(n.id) ?? 0) >= (attemptsAllowedByNode.get(n.id) ?? 1) && !isDone) ? (
                   <Btn sm ghost asChild>
                     <Link href={`/learn/${program.id}/${n.id}/grade`}>VIEW GRADE</Link>
                   </Btn>
