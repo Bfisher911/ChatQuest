@@ -240,6 +240,11 @@ export async function InstructorDashboard({
           <IconBtn title="List" aria-label="List">
             <Icon name="list" />
           </IconBtn>
+          <Btn sm ghost asChild title="One prompt → 3–7 node Chatrail draft">
+            <Link href="/programs/generate">
+              <span className="cq-square" /> AI · GENERATE
+            </Link>
+          </Btn>
           <Btn sm asChild>
             <Link href="/programs/new">
               <Icon name="plus" /> NEW CHATRAIL
@@ -323,11 +328,18 @@ function EmptyState() {
       <div className="cq-title-m" style={{ marginTop: 12, marginBottom: 24 }}>
         START WITH A FRESH PROGRAM.
       </div>
-      <Btn asChild>
-        <Link href="/programs/new">
-          <Icon name="plus" /> CREATE CHATRAIL
-        </Link>
-      </Btn>
+      <div className="row" style={{ justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+        <Btn asChild>
+          <Link href="/programs/generate">
+            <span className="cq-square" /> AI · GENERATE FROM PROMPT
+          </Link>
+        </Btn>
+        <Btn ghost asChild>
+          <Link href="/programs/new">
+            <Icon name="plus" /> CREATE BLANK
+          </Link>
+        </Btn>
+      </div>
     </div>
   );
 }
