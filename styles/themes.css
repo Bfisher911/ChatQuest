@@ -527,3 +527,12 @@
   color: var(--muted);
   font-weight: 500;
 }
+
+/* Chips marked as decorative — redundant signal in calm themes.
+ * Examples: a "BOT" chip on a Chatrail card (every Chatrail has bots),
+ * a "CLAUDE" / "GPT" model chip (technical detail; surfaced in the bot
+ * inspector when needed). Brutalist keeps the chip density as part of
+ * the look. */
+:not([data-theme="brutalist"]) [data-decorative-chip] {
+  display: none;
+}

@@ -119,7 +119,7 @@ export function ProgramsListView({ programs }: { programs: ProgramRow[] }) {
             corner={<>{(p.status ?? "draft").toUpperCase()}</>}
           >
             <div style={{ marginTop: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <Chip ghost>{(p.default_model ?? "—").toUpperCase()}</Chip>
+              <Chip ghost data-decorative-chip>{(p.default_model ?? "—").toUpperCase()}</Chip>
             </div>
           </Cassette>
         ))}

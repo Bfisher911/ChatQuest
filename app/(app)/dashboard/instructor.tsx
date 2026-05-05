@@ -292,8 +292,12 @@ export async function InstructorDashboard({
                   ]}
                 />
                 <CassetteChips>
-                  <Chip>BOT</Chip>
-                  {p.default_model?.includes("claude") ? <Chip ghost>CLAUDE</Chip> : <Chip ghost>GPT</Chip>}
+                  <Chip data-decorative-chip>BOT</Chip>
+                  {p.default_model?.includes("claude") ? (
+                    <Chip ghost data-decorative-chip>CLAUDE</Chip>
+                  ) : (
+                    <Chip ghost data-decorative-chip>GPT</Chip>
+                  )}
                   {certCount > 0 ? <Chip ghost>{certCount} CERTS</Chip> : null}
                 </CassetteChips>
                 {lastActivity ? (
