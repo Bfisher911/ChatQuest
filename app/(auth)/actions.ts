@@ -182,3 +182,100 @@ export async function requestPasswordReset(formData: FormData) {
   if (error) return { ok: false as const, error: error.message };
   return { ok: true as const };
 }
+
+// ─────────── Claim an invite for the currently signed-in account ───────────
+//
+// Used when a returning user clicks an invite link. Mirrors the invite-claim
+// block in signUp: validates the token + email match, inserts an
+// organization_members row + (optionally) a program_enrollment, marks the
+// invite accepted. Idempotent against duplicate clicks via upsert semantics
+// (PK on organization_id+user_id and program_id+user_id).
+export type ClaimInviteResult =
+  | { ok: true; redirectTo: string }
+  | { ok: false; error: string; code?: "wrong-email" | "expired" | "invalid" };
+
+export async function claimInviteForCurrentUser(token: string): Promise<ClaimInviteResult> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createServiceRoleClient();
+  const { data: invite } = await admin
+    .from("invites")
+    .select("id, email, role, status, expires_at, organization_id, program_id, invited_by")
+    .eq("token", token)
+    .maybeSingle();
+  if (!invite) return { ok: false, error: "Invite not found.", code: "invalid" };
+  if (invite.status !== "pending") {
+    return { ok: false, error: "Invite already used or revoked.", code: "expired" };
+  }
+  if (new Date(invite.expires_at) < new Date()) {
+    return { ok: false, error: "Invite expired.", code: "expired" };
+  }
+  // Compare emails case-insensitively. The user's auth email is canonical.
+  if ((user.email ?? "").toLowerCase() !== invite.email.toLowerCase()) {
+    return {
+      ok: false,
+      error: `This invite was sent to ${invite.email}, but you are signed in as ${user.email}.`,
+      code: "wrong-email",
+    };
+  }
+
+  // Upsert the membership so re-clicking the link doesn't error.
+  await admin
+    .from("organization_members")
+    .upsert(
+      {
+        organization_id: invite.organization_id,
+        user_id: user.id,
+        role: invite.role,
+        invited_by: invite.invited_by,
+      },
+      { onConflict: "organization_id,user_id" },
+    );
+
+  if (invite.program_id) {
+    if (invite.role === "learner") {
+      await admin
+        .from("program_enrollments")
+        .upsert(
+          { program_id: invite.program_id, user_id: user.id, status: "active" },
+          { onConflict: "program_id,user_id" },
+        );
+    } else if (invite.role === "instructor" || invite.role === "ta") {
+      await admin
+        .from("program_instructors")
+        .upsert(
+          {
+            program_id: invite.program_id,
+            user_id: user.id,
+            capacity: invite.role === "ta" ? "ta" : "co_instructor",
+          },
+          { onConflict: "program_id,user_id" },
+        );
+    }
+  }
+
+  await admin
+    .from("invites")
+    .update({
+      status: "accepted",
+      accepted_at: new Date().toISOString(),
+      accepted_by: user.id,
+    })
+    .eq("id", invite.id);
+
+  // Send learners straight to the program; staff land on the program overview.
+  const redirectTo = invite.program_id
+    ? invite.role === "learner"
+      ? `/learn/${invite.program_id}`
+      : `/programs/${invite.program_id}`
+    : "/dashboard";
+
+  revalidatePath("/dashboard");
+  revalidatePath("/learn");
+  revalidatePath("/programs");
+  return { ok: true, redirectTo };
+}
