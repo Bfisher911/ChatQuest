@@ -121,6 +121,12 @@ const createBotNodeSchema = z.object({
   attemptsAllowed: z.coerce.number().int().min(1).default(2),
   points: z.coerce.number().int().min(0).default(25),
   rubricId: z.string().uuid().optional().nullable(),
+  // Whether the bot pulls top-k chunks from the program KB on each turn.
+  // Default true matches the DB column default.
+  useProgramKb: z
+    .union([z.literal("on"), z.literal("true"), z.literal("false"), z.boolean()])
+    .transform((v) => v === true || v === "on" || v === "true")
+    .default(true as unknown as boolean),
 });
 
 export async function createBotNode(formData: FormData) {
@@ -138,6 +144,7 @@ export async function createBotNode(formData: FormData) {
     attemptsAllowed: formData.get("attemptsAllowed") ?? undefined,
     points: formData.get("points") ?? undefined,
     rubricId: formData.get("rubricId") || null,
+    useProgramKb: formData.get("useProgramKb") ?? undefined,
   });
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
@@ -181,6 +188,7 @@ export async function createBotNode(formData: FormData) {
     max_tokens: parsed.data.maxTokens,
     attempts_allowed: parsed.data.attemptsAllowed,
     rubric_id: parsed.data.rubricId || null,
+    use_program_kb: parsed.data.useProgramKb,
   });
   if (cfgErr) return { ok: false as const, error: cfgErr.message };
 
@@ -207,6 +215,7 @@ export async function updateBotNode(formData: FormData) {
     attemptsAllowed: formData.get("attemptsAllowed") ?? undefined,
     points: formData.get("points") ?? undefined,
     rubricId: formData.get("rubricId") || null,
+    useProgramKb: formData.get("useProgramKb") ?? undefined,
   });
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const supabase = createClient();
@@ -228,6 +237,7 @@ export async function updateBotNode(formData: FormData) {
       max_tokens: parsed.data.maxTokens,
       attempts_allowed: parsed.data.attemptsAllowed,
       rubric_id: parsed.data.rubricId || null,
+      use_program_kb: parsed.data.useProgramKb,
     })
     .eq("node_id", parsed.data.nodeId);
   if (cfgErr) return { ok: false as const, error: cfgErr.message };

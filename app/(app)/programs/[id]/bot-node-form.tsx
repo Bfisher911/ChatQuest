@@ -23,6 +23,7 @@ export interface BotNodeFormProps {
       max_tokens: number;
       attempts_allowed: number;
       rubric_id: string | null;
+      use_program_kb?: boolean | null;
     } | null;
   };
 }
@@ -184,6 +185,44 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
       </div>
 
       <CostEstimate model={model} tokenBudget={tokenBudget} attemptsAllowed={attemptsAllowed} />
+
+      <div className="cq-field">
+        <label
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "flex-start",
+            cursor: "pointer",
+            padding: "10px 12px",
+            border: "var(--hair) solid var(--ink)",
+            background: "var(--paper)",
+          }}
+        >
+          <input
+            type="checkbox"
+            name="useProgramKb"
+            defaultChecked={cfg?.use_program_kb ?? true}
+            style={{ marginTop: 3 }}
+          />
+          <div>
+            <div style={{ fontFamily: "var(--font-sans)", fontWeight: 700 }}>
+              Use program knowledge base
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                color: "var(--muted)",
+                marginTop: 4,
+              }}
+            >
+              On every learner turn, retrieve top-k relevant chunks from this
+              Chatrail&apos;s KB collection and inject them into the bot&apos;s context.
+              Disable for free-form bots that don&apos;t need source-grounding.
+            </div>
+          </div>
+        </label>
+      </div>
 
       <div className="cq-field">
         <label htmlFor="rubricId">Rubric (for AI grading)</label>

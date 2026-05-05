@@ -16,7 +16,7 @@ export default async function NodeEditorPage({
   const supabase = createClient();
   const { data: node } = await supabase
     .from("path_nodes")
-    .select("id, type, title, points, program_id, chatbot_configs(system_prompt, learner_instructions, model, temperature, token_budget, max_tokens, attempts_allowed, rubric_id)")
+    .select("id, type, title, points, program_id, chatbot_configs(system_prompt, learner_instructions, model, temperature, token_budget, max_tokens, attempts_allowed, rubric_id, use_program_kb)")
     .eq("id", params.nodeId)
     .maybeSingle();
   if (!node) notFound();
@@ -70,6 +70,7 @@ export default async function NodeEditorPage({
                 max_tokens: number;
                 attempts_allowed: number;
                 rubric_id: string | null;
+                use_program_kb: boolean | null;
               }[]
             | null)?.[0] ?? null,
         }}
