@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import "./brutalist.css";
+@import "./themes.css";
 
 /* Reset Tailwind's default font weight to match the brutalist palette. */
 @layer base {

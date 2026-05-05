@@ -6,6 +6,7 @@ import { Footer } from "@/components/shell/footer";
 import { getSessionUser } from "@/lib/auth/rbac";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/db/types";
+import { getThemeFromCookies } from "@/lib/theme/server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
@@ -35,6 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         memberships={user.memberships}
         isSuperAdmin={user.isSuperAdmin}
         unreadNotifications={unread ?? 0}
+        initialTheme={getThemeFromCookies()}
       />
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
         {children}

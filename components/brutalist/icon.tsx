@@ -33,7 +33,8 @@ export type IconName =
   | "logout"
   | "upload"
   | "download"
-  | "trash";
+  | "trash"
+  | "palette";
 
 export interface IconProps extends React.SVGAttributes<SVGSVGElement> {
   name: IconName;
@@ -254,6 +255,16 @@ export function Icon({ name, size = 16, ...rest }: IconProps) {
       return (
         <svg {...props}>
           <path d="M3 6h18M8 6V4h8v2M6 6v14h12V6M10 11v6M14 11v6" />
+        </svg>
+      );
+    case "palette":
+      // Painter's-palette silhouette with three "color blob" dots.
+      return (
+        <svg {...props}>
+          <path d="M12 3a9 9 0 1 0 4 17c-1-2 1-3 2-3h2a3 3 0 0 0 0-6h-2a8 8 0 0 0-6-8z" />
+          <circle cx="8" cy="9" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="13" cy="7" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="17" cy="11" r="1.4" fill="currentColor" stroke="none" />
         </svg>
       );
     default:

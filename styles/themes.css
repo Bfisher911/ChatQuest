@@ -1,0 +1,360 @@
+/* Chatrail — theme system.
+ *
+ * The brutalist B&W identity in `brutalist.css` is one of several themes a
+ * user can pick. Themes are scoped to `[data-theme="..."]` on <html>, set
+ * server-side from a cookie so there's no flash. Each theme redefines the
+ * CSS custom properties that the existing `.cq-*` classes consume — no
+ * component code changes; the whole UI re-skins via CSS variables.
+ *
+ * Available themes:
+ *   - brutalist  (default — current B&W heavy-border identity)
+ *   - clean      (modern SaaS — soft borders, rounded, sentence case)
+ *   - dark       (clean's palette inverted; comfortable for long sessions)
+ *   - terminal   (retro green-on-black mono — fun option)
+ *
+ * Density toggle (orthogonal to theme):
+ *   - cozy       (default)
+ *   - compact    (tighter spacing)
+ *   - comfy      (extra whitespace)
+ */
+
+/* ───────── New theme tokens ───────── */
+/*
+ * The brutalist baseline already exposes --ink, --paper, --soft, --muted,
+ * --accent, --accent-fg, --frame, --hair, --gap, --pad, --font-sans,
+ * --font-mono, --font-pixel.
+ *
+ * The themes below also set these new tokens so non-brutalist themes can
+ * round corners, soften shadows, and skip ALL-CAPS without us having to
+ * touch every component.
+ */
+:root {
+  /* Border-radius applied to cassettes, frames, buttons, chips, inputs. */
+  --radius: 0;
+  /* Card / cassette elevation for themes that prefer shadow over border. */
+  --shadow-sm: none;
+  --shadow-md: none;
+  /* Cassette hover treatment in brutalist is the 6px translate-and-shadow.
+   * Other themes can opt out with a softer hover. */
+  --hover-translate: -2px;
+  --hover-shadow: 6px 6px 0 var(--ink);
+  /* Display-typography case + family. Brutalist defaults to UPPERCASE +
+   * pixel font for indices/eyebrows; clean themes prefer sentence case. */
+  --tt-display: uppercase;
+  --tt-button: uppercase;
+  --tt-chip: uppercase;
+  --tt-eyebrow: uppercase;
+  --font-display: var(--font-pixel);
+  /* Letter-spacing baseline for titles. Looks heavier with uppercase. */
+  --ls-title: -0.02em;
+  /* Chip ornament — brutalist's leading ■ glyph. Set to '' to hide. */
+  --chip-bullet: "■";
+  /* Border color on cassettes / frames; defaults to ink but clean themes
+   * use a softer line so the page doesn't feel walled-in. */
+  --line: var(--ink);
+}
+
+/* ───────── Theme: clean ─────────
+ * Modern SaaS aesthetic — soft borders, rounded corners, generous
+ * whitespace, sentence case. Inter + JetBrains Mono. The same components
+ * with calmer presentation. */
+[data-theme="clean"] {
+  --ink: #0f1219;
+  --paper: #ffffff;
+  --soft: #f5f6f8;
+  --muted: #5b6472;
+  --accent: #2657ff;
+  --accent-fg: #ffffff;
+  --line: #d8dde6;
+
+  --frame: 1px;
+  --hair: 1px;
+  --radius: 10px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 18, 25, 0.04), 0 1px 1px rgba(15, 18, 25, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 18, 25, 0.06), 0 1px 2px rgba(15, 18, 25, 0.04);
+  --hover-translate: -1px;
+  --hover-shadow: 0 8px 24px rgba(15, 18, 25, 0.10);
+
+  --tt-display: none;
+  --tt-button: none;
+  --tt-chip: none;
+  --tt-eyebrow: uppercase;
+  --font-display: var(--font-sans);
+  --ls-title: -0.015em;
+  --chip-bullet: "";
+
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --font-pixel: "Inter", system-ui, sans-serif;
+}
+
+/* ───────── Theme: dark ─────────
+ * Clean's palette inverted. Same softness, comfortable for long sessions. */
+[data-theme="dark"] {
+  --ink: #e6e9ef;
+  --paper: #0f1219;
+  --soft: #1a1f2b;
+  --muted: #a4abb8;
+  --accent: #6c8cff;
+  --accent-fg: #0f1219;
+  --line: #2a3140;
+
+  --frame: 1px;
+  --hair: 1px;
+  --radius: 10px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --hover-translate: -1px;
+  --hover-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
+
+  --tt-display: none;
+  --tt-button: none;
+  --tt-chip: none;
+  --tt-eyebrow: uppercase;
+  --font-display: var(--font-sans);
+  --ls-title: -0.015em;
+  --chip-bullet: "";
+
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --font-pixel: "Inter", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+/* ───────── Theme: terminal ─────────
+ * Retro green-on-black mono everywhere. A confident hacker aesthetic. */
+[data-theme="terminal"] {
+  --ink: #33ff66;
+  --paper: #000000;
+  --soft: #021505;
+  --muted: #1f7a3a;
+  --accent: #33ff66;
+  --accent-fg: #000000;
+  --line: #1f7a3a;
+
+  --frame: 1px;
+  --hair: 1px;
+  --radius: 0;
+
+  --shadow-sm: 0 0 0 1px #1f7a3a;
+  --shadow-md: 0 0 16px rgba(51, 255, 102, 0.18);
+  --hover-translate: 0;
+  --hover-shadow: 0 0 0 2px #33ff66;
+
+  --tt-display: uppercase;
+  --tt-button: uppercase;
+  --tt-chip: uppercase;
+  --tt-eyebrow: uppercase;
+  --font-display: var(--font-mono);
+  --ls-title: 0;
+  --chip-bullet: ">";
+
+  --font-sans: "JetBrains Mono", "VT323", ui-monospace, Menlo, monospace;
+  --font-mono: "JetBrains Mono", "VT323", ui-monospace, Menlo, monospace;
+  --font-pixel: "VT323", "JetBrains Mono", monospace;
+  color-scheme: dark;
+}
+
+/* ───────── Apply tokens to the existing primitives ─────────
+ * Each rule below either reads a new token or overrides a hardcoded
+ * value in brutalist.css that wasn't variable-driven. */
+
+.cq-frame,
+.cq-cassette,
+.cq-card,
+.cq-input,
+.cq-textarea,
+.cq-select,
+.cq-btn,
+.cq-icon-btn,
+.cq-chip {
+  border-radius: var(--radius);
+}
+
+.cq-cassette,
+.cq-frame {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--line);
+}
+
+.cq-cassette:hover {
+  transform: translateY(var(--hover-translate));
+  box-shadow: var(--hover-shadow);
+}
+
+/* Display typography — overrides the hardcoded uppercase declarations from
+ * brutalist.css. Using `:not([data-theme="brutalist"])` so the brutalist
+ * default keeps its punchy ALL-CAPS look. */
+:not([data-theme="brutalist"]) .cq-title-xl,
+:not([data-theme="brutalist"]) .cq-title-l,
+:not([data-theme="brutalist"]) .cq-title-m,
+:not([data-theme="brutalist"]) .cq-title-s {
+  text-transform: var(--tt-display);
+  letter-spacing: var(--ls-title);
+}
+:not([data-theme="brutalist"]) .cq-btn {
+  text-transform: var(--tt-button);
+  letter-spacing: 0;
+  font-weight: 600;
+}
+:not([data-theme="brutalist"]) .cq-chip {
+  text-transform: var(--tt-chip);
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 500;
+}
+:not([data-theme="brutalist"]) .cq-eyebrow {
+  text-transform: var(--tt-eyebrow);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* The leading ■ on chips becomes themable via --chip-bullet (empty string
+ * hides it). */
+.cq-chip::before {
+  content: var(--chip-bullet);
+}
+:not([data-theme="brutalist"]) .cq-chip::before {
+  font-size: 9px;
+}
+
+/* Cassette index — brutalist uses pixel font, others use a quieter mono. */
+:not([data-theme="brutalist"]) .cq-cassette__index {
+  font-family: var(--font-display);
+}
+:not([data-theme="brutalist"]) .cq-cassette__corner {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: 0;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: none;
+}
+
+/* Logo treatment — non-brutalist themes use a clean wordmark instead of
+ * the boxed pixel-font logo. */
+[data-theme="clean"] .cq-logo,
+[data-theme="dark"] .cq-logo {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+[data-theme="clean"] .cq-logo-mark,
+[data-theme="dark"] .cq-logo-mark {
+  border: none;
+  padding: 0;
+  margin-right: 0;
+  font-family: inherit;
+  font-size: 18px;
+}
+[data-theme="clean"] .cq-logo-quest,
+[data-theme="dark"] .cq-logo-quest {
+  font-family: inherit;
+  color: var(--accent);
+  margin-left: 1px;
+}
+
+/* Header — softer divider on non-brutalist themes. */
+:not([data-theme="brutalist"]) .cq-header {
+  border-bottom: var(--hair) solid var(--line);
+}
+
+/* Tables — softer in non-brutalist. */
+:not([data-theme="brutalist"]) .cq-table th,
+:not([data-theme="brutalist"]) .cq-table td {
+  border-color: var(--line);
+}
+:not([data-theme="brutalist"]) .cq-table thead th {
+  background: var(--soft);
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Inputs — softer focus rings. */
+:not([data-theme="brutalist"]) .cq-input,
+:not([data-theme="brutalist"]) .cq-textarea,
+:not([data-theme="brutalist"]) .cq-select {
+  border-color: var(--line);
+}
+:not([data-theme="brutalist"]) .cq-input:focus,
+:not([data-theme="brutalist"]) .cq-textarea:focus,
+:not([data-theme="brutalist"]) .cq-select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+/* Buttons — softer hover on non-brutalist (no full inversion flicker). */
+:not([data-theme="brutalist"]) .cq-btn {
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+:not([data-theme="brutalist"]) .cq-btn:hover {
+  filter: brightness(1.05);
+  box-shadow: var(--shadow-sm);
+}
+:not([data-theme="brutalist"]) .cq-btn--ghost {
+  border-color: var(--line);
+}
+:not([data-theme="brutalist"]) .cq-btn--ghost:hover {
+  background: var(--soft);
+  color: var(--ink);
+  filter: none;
+}
+
+/* Soft background bands (eg the dashboard "soft" call-outs) need a real
+ * border in dark mode since shadow-only elevation disappears on dark. */
+[data-theme="dark"] .cq-frame,
+[data-theme="dark"] .cq-cassette {
+  background: var(--soft);
+}
+[data-theme="dark"] body {
+  background: var(--paper);
+}
+
+/* Progress bars + the SCORE/PCT readouts */
+:not([data-theme="brutalist"]) .cq-progressbar {
+  border-color: var(--line);
+  background: var(--soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+:not([data-theme="brutalist"]) .cq-progressbar i {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* Density modifiers (orthogonal to theme). */
+[data-density="compact"] {
+  --gap: 14px;
+  --pad: 14px;
+}
+[data-density="comfy"] {
+  --gap: 36px;
+  --pad: 36px;
+}
+[data-density="cozy"] {
+  --gap: 24px;
+  --pad: 24px;
+}
+
+/* Brutalist explicitly: keep the pixel ■ on chips, the boxed logo, the
+ * ALL-CAPS punch — even though :root defaults handle most of this, make
+ * the intent explicit so the data-theme="brutalist" selector wins over
+ * any cascade quirks. */
+[data-theme="brutalist"] {
+  --chip-bullet: "■";
+  --tt-display: uppercase;
+  --tt-button: uppercase;
+  --tt-chip: uppercase;
+  --tt-eyebrow: uppercase;
+  --font-display: var(--font-pixel);
+  --ls-title: -0.02em;
+  --line: var(--ink);
+}

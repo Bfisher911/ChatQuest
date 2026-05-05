@@ -7,6 +7,8 @@ import { IconBtn, Icon } from "@/components/brutalist";
 import { cx } from "@/lib/utils/cx";
 import type { UserRole } from "@/lib/db/types";
 import { signOut } from "@/app/(auth)/actions";
+import { ThemePicker } from "./theme-picker";
+import { DEFAULT_THEME, type Theme } from "@/lib/theme";
 
 export interface HeaderProps {
   userEmail: string;
@@ -15,6 +17,8 @@ export interface HeaderProps {
   memberships: { organizationId: string; organizationName: string; role: UserRole }[];
   isSuperAdmin: boolean;
   unreadNotifications?: number;
+  /** Server-resolved theme so the picker initializes with the right swatch. */
+  initialTheme?: Theme;
 }
 
 const ROLE_NAVS: Record<UserRole, { label: string; href: string }[]> = {
@@ -58,6 +62,7 @@ export function Header({
   memberships,
   isSuperAdmin,
   unreadNotifications = 0,
+  initialTheme = DEFAULT_THEME,
 }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -144,6 +149,7 @@ export function Header({
             </span>
           ) : null}
         </Link>
+        <ThemePicker initialTheme={initialTheme} />
         <Link
           href="/account"
           title={`Signed in as ${displayName} — open account`}

@@ -5,6 +5,8 @@ import { Eyebrow, Frame, Btn, Icon, Chip } from "@/components/brutalist";
 import { getActiveRole } from "@/lib/auth/active-role";
 import { ProfileForm } from "./profile-form";
 import { PasswordForm } from "./password-form";
+import { AppearanceForm } from "./appearance-form";
+import { getDensityFromCookies, getThemeFromCookies } from "@/lib/theme/server";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,26 @@ export default async function AccountPage() {
           <Stat label="ROLE" value={roleSummary || "—"} />
           <Stat label="ORGS" value={String(memberCount)} last />
         </div>
+      </Frame>
+
+      <Frame style={{ padding: 24, marginBottom: 24 }}>
+        <Eyebrow>APPEARANCE</Eyebrow>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: "var(--muted)",
+            margin: "8px 0 4px",
+            lineHeight: 1.6,
+          }}
+        >
+          Pick a theme that fits your aesthetic. Density controls how tightly
+          rows pack — Compact for power users, Spacious for calm reading.
+        </p>
+        <AppearanceForm
+          initialTheme={getThemeFromCookies()}
+          initialDensity={getDensityFromCookies()}
+        />
       </Frame>
 
       <Frame style={{ padding: 24, marginBottom: 24 }}>
