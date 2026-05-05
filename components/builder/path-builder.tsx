@@ -81,14 +81,40 @@ export interface BotConfigMin {
   allow_retry_after_feedback: boolean | null;
 }
 
-const NODE_PALETTE: { type: NodeType; label: string; icon: import("@/components/brutalist").IconName }[] = [
-  { type: "bot", label: "Chatbot", icon: "bot" },
-  { type: "content", label: "Content", icon: "file" },
-  { type: "pdf", label: "PDF / Doc", icon: "book" },
-  { type: "slides", label: "Slides", icon: "slides" },
-  { type: "link", label: "External", icon: "link" },
-  { type: "milestone", label: "Milestone", icon: "flag" },
-  { type: "cert", label: "Certificate", icon: "award" },
+// Palette grouped into three pedagogically-meaningful sections:
+//   - Bots: AI tutor conversations (the core unit)
+//   - Content: static reading / reference material
+//   - Outcomes: gating + completion proof
+// Grouping reduces the "wall of buttons" feel and helps creators reason
+// about Chatrail composition (dialogue → reference → checkpoint → cert).
+const NODE_PALETTE_GROUPS: {
+  label: string;
+  blurb: string;
+  items: { type: NodeType; label: string; icon: import("@/components/brutalist").IconName; hint?: string }[];
+}[] = [
+  {
+    label: "Bots",
+    blurb: "AI tutor conversations",
+    items: [{ type: "bot", label: "Chatbot", icon: "bot", hint: "Configurable AI tutor with system prompt + KB" }],
+  },
+  {
+    label: "Content",
+    blurb: "Reference material",
+    items: [
+      { type: "content", label: "Content", icon: "file", hint: "Rich text reading with completion ack" },
+      { type: "pdf", label: "PDF / Doc", icon: "book", hint: "Embed a PDF for reference" },
+      { type: "slides", label: "Slides", icon: "slides", hint: "In-app slide deck" },
+      { type: "link", label: "External", icon: "link", hint: "Link out + acknowledgement" },
+    ],
+  },
+  {
+    label: "Outcomes",
+    blurb: "Gates + completion",
+    items: [
+      { type: "milestone", label: "Milestone", icon: "flag", hint: "Prereq + min-grade gate" },
+      { type: "cert", label: "Certificate", icon: "award", hint: "Issued PDF on completion" },
+    ],
+  },
 ];
 
 // Custom node renderer that matches the brutalist prototype style.
@@ -255,20 +281,47 @@ function PathBuilderInner({
 
   return (
     <div className="cq-pb" style={{ height: "calc(100vh - 230px)" }}>
-      {/* LEFT: palette */}
+      {/* LEFT: palette — grouped by category */}
       <aside className="cq-pb__rail">
         <h4>■ ADD NODE</h4>
-        {NODE_PALETTE.map((p) => (
-          <button
-            key={p.type}
-            onClick={() => addNode(p.type)}
-            className="cq-pb__rail-item"
-            style={{ width: "100%", textAlign: "left", background: "var(--paper)" }}
+        {NODE_PALETTE_GROUPS.map((group, gi) => (
+          <div
+            key={group.label}
+            style={{ marginTop: gi === 0 ? 0 : 18 }}
           >
-            <Icon name={p.icon} size={14} />
-            <span>{p.label}</span>
-            <span style={{ marginLeft: "auto", fontFamily: "var(--font-pixel)", fontSize: 8 }}>{p.type.toUpperCase()}</span>
-          </button>
+            <div
+              className="cq-mono"
+              data-decorative-count
+              style={{
+                fontSize: 10,
+                color: "var(--muted)",
+                letterSpacing: "0.08em",
+                marginBottom: 6,
+                paddingLeft: 2,
+                textTransform: "uppercase",
+              }}
+            >
+              {group.label} <span style={{ opacity: 0.5 }}>· {group.blurb}</span>
+            </div>
+            {group.items.map((p) => (
+              <button
+                key={p.type}
+                onClick={() => addNode(p.type)}
+                className="cq-pb__rail-item"
+                title={p.hint}
+                style={{ width: "100%", textAlign: "left", background: "var(--paper)" }}
+              >
+                <Icon name={p.icon} size={14} />
+                <span>{p.label}</span>
+                <span
+                  data-decorative-counter
+                  style={{ marginLeft: "auto", fontFamily: "var(--font-pixel)", fontSize: 8 }}
+                >
+                  {p.type.toUpperCase()}
+                </span>
+              </button>
+            ))}
+          </div>
         ))}
         <h4 style={{ marginTop: 24 }}>■ TIPS</h4>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.5, color: "var(--muted)" }}>

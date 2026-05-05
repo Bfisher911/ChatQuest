@@ -536,3 +536,19 @@
 :not([data-theme="brutalist"]) [data-decorative-chip] {
   display: none;
 }
+
+/* ───────── Native <details> disclosure for "Advanced" expanders ─────────
+ * Used in the bot node editor (and reusable elsewhere) to keep power-user
+ * fields out of the way until needed. The caret arrow rotates 45deg when
+ * the details element is open. */
+.cq-advanced summary::-webkit-details-marker { display: none; }
+.cq-advanced[open] > summary .cq-advanced__caret {
+  transform: rotate(45deg);
+}
+.cq-advanced > summary:hover {
+  background: var(--soft);
+}
+.cq-advanced > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

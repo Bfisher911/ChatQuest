@@ -198,33 +198,41 @@ export function GradebookView({
         </div>
       </div>
 
-      {/* Filter / search / sort toolbar */}
+      {/* Single-row toolbar — Status dropdown + Search + Sort + Clear.
+          The previous design used 5 filter pills which wrapped onto a
+          second row on smaller screens; a status dropdown carries the
+          same information (active filter + count) in one compact control.
+          A discreet stat strip below the toolbar surfaces all five counts
+          when no filter is active so the at-a-glance signal is preserved. */}
       <div
         className="row"
         style={{
           padding: "10px 16px",
-          borderBottom: "var(--hair) solid var(--ink)",
+          borderBottom: "var(--hair) solid var(--line, var(--ink))",
           gap: 8,
-          flexWrap: "wrap",
           alignItems: "center",
           background: "var(--paper)",
         }}
       >
-        <FilterPill active={filter === "all"} onClick={() => setFilter("all")}>
-          ALL · {counts.all}
-        </FilterPill>
-        <FilterPill active={filter === "pending"} onClick={() => setFilter("pending")}>
-          NEEDS GRADING · {counts.pending}
-        </FilterPill>
-        <FilterPill active={filter === "graded"} onClick={() => setFilter("graded")}>
-          GRADED · {counts.graded}
-        </FilterPill>
-        <FilterPill active={filter === "needs_revision"} onClick={() => setFilter("needs_revision")}>
-          REVISION · {counts.needs_revision}
-        </FilterPill>
-        <FilterPill active={filter === "missing"} onClick={() => setFilter("missing")}>
-          MISSING WORK · {counts.missing}
-        </FilterPill>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as FilterKind)}
+          aria-label="Filter learners"
+          className="cq-select"
+          style={{
+            padding: "6px 10px",
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            background: "var(--paper)",
+            minWidth: 180,
+          }}
+        >
+          <option value="all">All learners ({counts.all})</option>
+          <option value="pending">Needs grading ({counts.pending})</option>
+          <option value="graded">Graded ({counts.graded})</option>
+          <option value="needs_revision">Revision requested ({counts.needs_revision})</option>
+          <option value="missing">Missing work ({counts.missing})</option>
+        </select>
 
         <input
           type="text"
@@ -232,32 +240,32 @@ export function GradebookView({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search learner…"
           style={{
-            marginLeft: "auto",
+            flex: 1,
+            minWidth: 180,
             padding: "6px 10px",
             fontFamily: "var(--font-mono)",
             fontSize: 12,
-            border: "var(--hair) solid var(--ink)",
+            border: "var(--hair) solid var(--line, var(--ink))",
             background: "var(--paper)",
-            minWidth: 180,
           }}
         />
 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKind)}
+          aria-label="Sort"
+          className="cq-select"
           style={{
             padding: "6px 10px",
             fontFamily: "var(--font-mono)",
             fontSize: 12,
-            border: "var(--hair) solid var(--ink)",
             background: "var(--paper)",
           }}
-          aria-label="Sort"
         >
-          <option value="name">SORT · NAME</option>
-          <option value="pct_desc">SORT · % HIGH→LOW</option>
-          <option value="pct_asc">SORT · % LOW→HIGH</option>
-          <option value="needs_grading">SORT · NEEDS GRADING</option>
+          <option value="name">Sort: Name</option>
+          <option value="pct_desc">Sort: % high → low</option>
+          <option value="pct_asc">Sort: % low → high</option>
+          <option value="needs_grading">Sort: Needs grading</option>
         </select>
 
         {(filter !== "all" || query.trim()) && (
@@ -267,13 +275,51 @@ export function GradebookView({
               setFilter("all");
               setQuery("");
             }}
-            className="cq-btn cq-btn--ghost cq-btn--sm"
-            style={{ marginLeft: 4 }}
+            title="Clear filters"
+            aria-label="Clear filters"
+            style={{
+              border: "none",
+              background: "transparent",
+              color: "var(--muted)",
+              cursor: "pointer",
+              padding: "6px 8px",
+              fontFamily: "var(--font-mono)",
+              fontSize: 12,
+              textDecoration: "underline",
+            }}
           >
-            CLEAR
+            Clear
           </button>
         )}
       </div>
+
+      {/* Stat strip — only shown when no filter is active. Quick visual
+          signal of where attention is needed without burning toolbar space. */}
+      {filter === "all" && !query.trim() && counts.all > 0 ? (
+        <div
+          style={{
+            padding: "6px 16px",
+            borderBottom: "var(--hair) solid var(--line, var(--ink))",
+            background: "var(--soft)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--muted)",
+            display: "flex",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <span>{counts.all} learners</span>
+          {counts.pending > 0 ? (
+            <span>
+              <strong style={{ color: "var(--ink)" }}>{counts.pending}</strong> need grading
+            </span>
+          ) : null}
+          {counts.graded > 0 ? <span>{counts.graded} graded</span> : null}
+          {counts.needs_revision > 0 ? <span>{counts.needs_revision} revision requested</span> : null}
+          {counts.missing > 0 ? <span>{counts.missing} missing work</span> : null}
+        </div>
+      ) : null}
 
       <div className="cq-gb__wrap">
         <table className="cq-table">
@@ -389,23 +435,3 @@ export function GradebookView({
   );
 }
 
-function FilterPill({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cx("cq-btn", "cq-btn--sm", active ? "" : "cq-btn--ghost")}
-      style={{ whiteSpace: "nowrap" }}
-    >
-      {children}
-    </button>
-  );
-}

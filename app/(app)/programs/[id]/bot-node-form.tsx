@@ -119,7 +119,11 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
         />
       </div>
 
-      <div className="cq-grid cq-grid--2" style={{ gap: 12 }}>
+      {/* Always-visible essentials: model + attempts + points. Power-user
+          dials (temperature / token budget / max tokens / cost estimate)
+          live in the Advanced expander below — most creators never touch
+          them, and exposing them up front made the form feel intimidating. */}
+      <div className="cq-grid cq-grid--3" style={{ gap: 12 }}>
         <div className="cq-field">
           <label htmlFor="model">Model</label>
           <select id="model" name="model" value={model} onChange={(e) => setModel(e.target.value)} className="cq-select">
@@ -145,28 +149,6 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
           </select>
         </div>
         <div className="cq-field">
-          <label htmlFor="temperature">Temperature</label>
-          <input id="temperature" name="temperature" type="number" step="0.05" min={0} max={1}
-            defaultValue={Number(cfg?.temperature ?? 0.4)} className="cq-input" />
-        </div>
-        <div className="cq-field">
-          <label htmlFor="tokenBudget">Token budget (per attempt)</label>
-          <input
-            id="tokenBudget"
-            name="tokenBudget"
-            type="number"
-            min={500}
-            value={tokenBudget}
-            onChange={(e) => setTokenBudget(Number(e.target.value) || 0)}
-            className="cq-input"
-          />
-        </div>
-        <div className="cq-field">
-          <label htmlFor="maxTokens">Max tokens per response</label>
-          <input id="maxTokens" name="maxTokens" type="number" min={64}
-            defaultValue={cfg?.max_tokens ?? 1024} className="cq-input" />
-        </div>
-        <div className="cq-field">
           <label htmlFor="attemptsAllowed">Attempts allowed</label>
           <input
             id="attemptsAllowed"
@@ -185,7 +167,86 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
         </div>
       </div>
 
-      <CostEstimate model={model} tokenBudget={tokenBudget} attemptsAllowed={attemptsAllowed} />
+      {/* Advanced — collapsed by default. Uses native <details> so it
+          works without JS and respects keyboard navigation. */}
+      <details className="cq-advanced" style={{ marginTop: 4 }}>
+        <summary
+          style={{
+            cursor: "pointer",
+            padding: "10px 12px",
+            border: "var(--hair) solid var(--line)",
+            borderRadius: "var(--radius)",
+            fontFamily: "var(--font-sans)",
+            fontWeight: 600,
+            fontSize: 13,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "var(--paper)",
+            userSelect: "none",
+            listStyle: "none",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              borderRight: "2px solid currentColor",
+              borderBottom: "2px solid currentColor",
+              transform: "rotate(-45deg)",
+              transition: "transform 0.15s ease",
+              marginLeft: 2,
+            }}
+            className="cq-advanced__caret"
+          />
+          Advanced — model temperature, token budget, cost estimate
+        </summary>
+        <div
+          style={{
+            padding: "16px 4px 4px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div className="cq-grid cq-grid--3" style={{ gap: 12 }}>
+            <div className="cq-field">
+              <label htmlFor="temperature">Temperature</label>
+              <input id="temperature" name="temperature" type="number" step="0.05" min={0} max={1}
+                defaultValue={Number(cfg?.temperature ?? 0.4)} className="cq-input" />
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                0.0 = focused / 0.4 = balanced (default) / 0.7 = creative
+              </div>
+            </div>
+            <div className="cq-field">
+              <label htmlFor="tokenBudget">Token budget per attempt</label>
+              <input
+                id="tokenBudget"
+                name="tokenBudget"
+                type="number"
+                min={500}
+                value={tokenBudget}
+                onChange={(e) => setTokenBudget(Number(e.target.value) || 0)}
+                className="cq-input"
+              />
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                Hard cap. Hits 80% → soft warn, 100% → blocked.
+              </div>
+            </div>
+            <div className="cq-field">
+              <label htmlFor="maxTokens">Max tokens per response</label>
+              <input id="maxTokens" name="maxTokens" type="number" min={64}
+                defaultValue={cfg?.max_tokens ?? 1024} className="cq-input" />
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                Per-turn limit. 1024 covers ~750 words.
+              </div>
+            </div>
+          </div>
+          <CostEstimate model={model} tokenBudget={tokenBudget} attemptsAllowed={attemptsAllowed} />
+        </div>
+      </details>
 
       <div className="cq-field">
         <label
