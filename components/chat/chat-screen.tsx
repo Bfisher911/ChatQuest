@@ -47,25 +47,38 @@ export function ChatScreen(props: ChatScreenProps) {
   // we stop accepting new messages and surface a banner with submit as the
   // only path forward — toast-and-keep-going produced confusing repeat errors.
   const [budgetExhausted, setBudgetExhausted] = React.useState<null | "attempt" | "monthly">(null);
+  // True while a streamed reply is in flight — used to swap SEND ⇄ STOP.
+  const [streaming, setStreaming] = React.useState(false);
   const streamRef = React.useRef<HTMLDivElement>(null);
+  // Lets the STOP button abort the in-flight fetch.
+  const abortRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => {
     if (streamRef.current) streamRef.current.scrollTop = streamRef.current.scrollHeight;
   }, [messages]);
+
+  function stop() {
+    abortRef.current?.abort();
+  }
 
   async function send() {
     if (!draft.trim() || pending) return;
     const text = draft.trim();
     setDraft("");
     setPending(true);
+    setStreaming(true);
 
     setMessages((m) => [...m, { role: "user", content: text }, { role: "assistant", content: "", streaming: true }]);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const res = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId: props.conversationId, message: text }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -128,19 +141,36 @@ export function ChatScreen(props: ChatScreenProps) {
         }
       }
     } catch (err: unknown) {
+      const aborted =
+        (err instanceof Error && err.name === "AbortError") ||
+        (typeof err === "object" && err !== null && "name" in err && (err as { name?: string }).name === "AbortError");
       const msg = err instanceof Error ? err.message : "Send failed";
-      // Recognize budget-exhaustion errors and lock the composer instead of
-      // letting the learner spam Send and rack up a stack of failure toasts.
-      if (/monthly token budget/i.test(msg)) {
+      if (aborted) {
+        toast("Stopped.");
+      } else if (/monthly token budget/i.test(msg)) {
         setBudgetExhausted("monthly");
       } else if (/token budget for this attempt/i.test(msg)) {
         setBudgetExhausted("attempt");
       } else {
         toast.error(msg);
       }
-      setMessages((curr) => curr.filter((m) => !m.streaming));
+      // Convert the partial streaming reply into a non-streaming message so
+      // the learner can see what they got before the abort. Drop empty stubs.
+      setMessages((curr) => {
+        const next = [...curr];
+        const last = next[next.length - 1];
+        if (last?.role === "assistant" && last.streaming) {
+          if (!last.content.trim()) {
+            return next.slice(0, -1);
+          }
+          next[next.length - 1] = { ...last, streaming: false };
+        }
+        return next;
+      });
     } finally {
       setPending(false);
+      setStreaming(false);
+      abortRef.current = null;
     }
   }
 
@@ -351,9 +381,15 @@ export function ChatScreen(props: ChatScreenProps) {
             }
             disabled={pending || submitted || !!budgetExhausted}
           />
-          <Btn onClick={send} disabled={pending || submitted || !draft.trim() || !!budgetExhausted}>
-            SEND <Icon name="send" />
-          </Btn>
+          {streaming ? (
+            <Btn onClick={stop} accent>
+              STOP <Icon name="x" />
+            </Btn>
+          ) : (
+            <Btn onClick={send} disabled={pending || submitted || !draft.trim() || !!budgetExhausted}>
+              SEND <Icon name="send" />
+            </Btn>
+          )}
         </div>
       </div>
     </div>
