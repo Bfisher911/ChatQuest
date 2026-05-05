@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveRole } from "@/lib/auth/active-role";
 import { Cassette, Eyebrow, Btn, Icon, Chip, Frame } from "@/components/brutalist";
+import { DuplicateRubricButton } from "./duplicate-button";
 
 export const dynamic = "force-dynamic";
 
@@ -60,24 +61,28 @@ export default async function RubricsPage() {
           {rubrics.map((r, i) => {
             const attachedTo = counts.get(r.id) ?? 0;
             return (
-              <Cassette
-                key={r.id}
-                small
-                index={i + 1}
-                indexWidth={4}
-                title={r.name}
-                meta={`${r.total_points ?? 0} pts`}
-                href={`/rubrics/${r.id}`}
-              >
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
-                  {r.description?.slice(0, 80) ?? "—"}
-                </p>
-                <div style={{ marginTop: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <Chip ghost>{r.total_points ?? 0} PTS</Chip>
-                  {attachedTo > 0 ? <Chip>ATTACHED · {attachedTo}</Chip> : null}
-                  {r.is_visible_to_learners ? <Chip ghost>SHOWN TO LEARNERS</Chip> : null}
+              <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Cassette
+                  small
+                  index={i + 1}
+                  indexWidth={4}
+                  title={r.name}
+                  meta={`${r.total_points ?? 0} pts`}
+                  href={`/rubrics/${r.id}`}
+                >
+                  <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>
+                    {r.description?.slice(0, 80) ?? "—"}
+                  </p>
+                  <div style={{ marginTop: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <Chip ghost>{r.total_points ?? 0} PTS</Chip>
+                    {attachedTo > 0 ? <Chip>ATTACHED · {attachedTo}</Chip> : null}
+                    {r.is_visible_to_learners ? <Chip ghost>SHOWN TO LEARNERS</Chip> : null}
+                  </div>
+                </Cassette>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <DuplicateRubricButton rubricId={r.id} />
                 </div>
-              </Cassette>
+              </div>
             );
           })}
         </div>

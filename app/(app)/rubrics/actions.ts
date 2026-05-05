@@ -103,6 +103,104 @@ export async function updateRubric(input: z.infer<typeof updateRubricSchema>) {
   return { ok: true as const };
 }
 
+// Clone a rubric (criteria + levels) under the same org. The duplicate is a
+// fresh rubric_id so it never collides with the original's chatbot
+// attachments, and gets " (Copy)" appended to disambiguate at the list view.
+export async function duplicateRubric(rubricId: string) {
+  const session = await getActiveRole();
+  if (!session?.activeOrganizationId) return { ok: false as const, error: "No active organization." };
+  if (!["instructor", "org_admin", "super_admin"].includes(session.activeRole)) {
+    return { ok: false as const, error: "Only Creators can duplicate rubrics." };
+  }
+  const admin = createServiceRoleClient();
+
+  const { data: src } = await admin
+    .from("rubrics")
+    .select("id, organization_id, name, description, total_points, is_visible_to_learners")
+    .eq("id", rubricId)
+    .maybeSingle();
+  if (!src) return { ok: false as const, error: "Rubric not found" };
+  if (src.organization_id !== session.activeOrganizationId && !session.user.isSuperAdmin) {
+    return { ok: false as const, error: "Cross-org duplication refused." };
+  }
+
+  // 1) Insert the new rubric row.
+  const { data: dup, error: dupErr } = await admin
+    .from("rubrics")
+    .insert({
+      organization_id: src.organization_id,
+      name: `${src.name} (Copy)`,
+      description: src.description,
+      total_points: src.total_points,
+      is_visible_to_learners: src.is_visible_to_learners,
+      created_by: session.user.id,
+    })
+    .select("id")
+    .single();
+  if (dupErr || !dup) return { ok: false as const, error: dupErr?.message ?? "Duplicate failed" };
+
+  // 2) Copy criteria.
+  const { data: srcCrits } = await admin
+    .from("rubric_criteria")
+    .select("id, name, description, max_points, display_order")
+    .eq("rubric_id", rubricId)
+    .order("display_order", { ascending: true });
+
+  if (srcCrits && srcCrits.length > 0) {
+    const oldToNewCrit = new Map<string, string>();
+    const inserted = await admin
+      .from("rubric_criteria")
+      .insert(
+        srcCrits.map((c) => ({
+          rubric_id: dup.id,
+          name: c.name,
+          description: c.description,
+          max_points: c.max_points,
+          display_order: c.display_order,
+        })),
+      )
+      .select("id, display_order");
+    if (inserted.data) {
+      // Pair by display_order so the level copy can map old crit → new crit.
+      const insertedSorted = [...inserted.data].sort(
+        (a, b) => Number(a.display_order) - Number(b.display_order),
+      );
+      const srcSorted = [...srcCrits].sort((a, b) => Number(a.display_order) - Number(b.display_order));
+      for (let i = 0; i < srcSorted.length && i < insertedSorted.length; i++) {
+        oldToNewCrit.set(srcSorted[i].id, insertedSorted[i].id);
+      }
+    }
+
+    // 3) Copy levels (if any) attached to each criterion.
+    const oldCritIds = srcCrits.map((c) => c.id);
+    const { data: srcLevels } = await admin
+      .from("rubric_levels")
+      .select("criterion_id, label, points, description, display_order")
+      .in("criterion_id", oldCritIds);
+    if (srcLevels && srcLevels.length > 0) {
+      const newLevels = srcLevels
+        .map((l) => {
+          const newCritId = oldToNewCrit.get(l.criterion_id);
+          if (!newCritId) return null;
+          return {
+            criterion_id: newCritId,
+            label: l.label,
+            points: l.points,
+            description: l.description,
+            display_order: l.display_order,
+          };
+        })
+        .filter((l): l is NonNullable<typeof l> => l !== null);
+      if (newLevels.length > 0) {
+        await admin.from("rubric_levels").insert(newLevels);
+      }
+    }
+  }
+
+  revalidatePath("/rubrics");
+  return { ok: true as const, rubricId: dup.id };
+}
+
 export async function deleteRubric(rubricId: string) {
   const session = await getActiveRole();
   if (!session) return { ok: false as const, error: "Not signed in" };
