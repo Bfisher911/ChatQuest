@@ -65,8 +65,10 @@ export async function generateChatrailFromPrompt(input: z.infer<typeof generateS
     outputTokens = result.outputTokens;
     modelUsed = result.modelUsed;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: `Generation failed: ${msg}` };
+    const raw = err instanceof Error ? err.message : String(err);
+    const { friendlyLLMError } = await import("@/lib/llm/errors");
+    console.error("[generate-chatrail] LLM call failed:", err);
+    return { ok: false, error: friendlyLLMError(raw) };
   }
 
   const admin = createServiceRoleClient();

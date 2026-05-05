@@ -99,7 +99,9 @@ export async function POST(req: NextRequest) {
       per_criterion: suggestion.per_criterion,
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const raw = err instanceof Error ? err.message : "Unknown error";
+    const { friendlyLLMError } = await import("@/lib/llm/errors");
+    console.error("[grade-suggest] LLM call failed:", err);
+    return NextResponse.json({ error: friendlyLLMError(raw) }, { status: 500 });
   }
 }

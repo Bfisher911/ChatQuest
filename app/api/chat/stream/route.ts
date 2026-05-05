@@ -11,6 +11,7 @@ import { streamChat, type ChatModel, type ChatMessage } from "@/lib/llm/provider
 import { searchKnowledge } from "@/lib/rag/search";
 import { buildSystemPrompt } from "@/lib/llm/prompt";
 import { logUsage } from "@/lib/llm/usage";
+import { friendlyLLMError } from "@/lib/llm/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -226,9 +227,15 @@ export async function POST(req: NextRequest) {
         );
         controller.close();
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Stream error";
+        const raw = err instanceof Error ? err.message : "Stream error";
+        const friendly = friendlyLLMError(raw);
+        // Log the raw stack server-side; only the friendly version goes
+        // back to the learner so missing keys / quota errors render as
+        // "AI provider not configured. Ask your admin to add ANTHROPIC_API_KEY..."
+        // instead of an opaque "Stream error".
+        console.error("[chat-stream] LLM call failed:", err);
         controller.enqueue(
-          encoder.encode(`event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`),
+          encoder.encode(`event: error\ndata: ${JSON.stringify({ error: friendly })}\n\n`),
         );
         controller.close();
       }

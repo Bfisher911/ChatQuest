@@ -14,15 +14,30 @@ const PUBLIC_PATHS = [
   "/signup",
   "/forgot-password",
   "/verify",
+  "/aup",
+  "/privacy",
+  "/terms",
+  "/sitemap.xml",
+  "/robots.txt",
 ];
 
 const isPublic = (pathname: string) =>
   PUBLIC_PATHS.includes(pathname) ||
   pathname.startsWith("/auth/") ||
   pathname.startsWith("/accept-invite/") ||
+  pathname.startsWith("/verify-cert/") ||
+  pathname.startsWith("/docs") ||
   pathname.startsWith("/_next") ||
   pathname.startsWith("/api/auth/") ||
-  pathname.startsWith("/api/stripe/webhook");
+  pathname.startsWith("/api/stripe/webhook") ||
+  // Operational endpoints — uptime / status pollers must hit these
+  // without an auth session. /api/health does a quick reachability
+  // probe; /api/diagnostics does a real LLM ping. Both are useful
+  // when debugging "why is my AI not working" and shouldn't be
+  // hidden behind login.
+  pathname === "/api/health" ||
+  pathname === "/api/diagnostics" ||
+  pathname.startsWith("/opengraph-image");
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

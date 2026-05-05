@@ -1,0 +1,211 @@
+// Operational diagnostics endpoint.
+//
+// Unlike /api/health (which only checks key SHAPE — does the string look
+// right) this endpoint does a real round-trip to each configured LLM
+// provider with a 5-token completion. If a key is set but invalid /
+// rate-limited / typo'd, you'll see it here.
+//
+// Public: yes (allowed in middleware) — but the LLM calls only fire
+// for the providers whose keys are present, so an attacker can't burn
+// tokens with a key that's not even there. Each call is capped at 8
+// output tokens to keep the cost negligible (<$0.0001 per probe).
+
+import { NextResponse } from "next/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+interface ProviderResult {
+  configured: boolean;
+  reachable?: boolean;
+  ms?: number;
+  detail?: string;
+  model?: string;
+}
+
+const PING_PROMPT = "Reply with the single word: OK";
+
+async function probeAnthropic(): Promise<ProviderResult> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { configured: false, detail: "ANTHROPIC_API_KEY not set" };
+  }
+  const t0 = Date.now();
+  try {
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const res = await client.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 8,
+      messages: [{ role: "user", content: PING_PROMPT }],
+    });
+    const text = res.content
+      .map((c) => (c.type === "text" ? c.text : ""))
+      .join("")
+      .trim();
+    return {
+      configured: true,
+      reachable: true,
+      ms: Date.now() - t0,
+      detail: `replied "${text.slice(0, 32)}"`,
+      model: "claude-haiku-4-5",
+    };
+  } catch (err) {
+    return {
+      configured: true,
+      reachable: false,
+      ms: Date.now() - t0,
+      detail: err instanceof Error ? err.message : "unknown error",
+    };
+  }
+}
+
+async function probeOpenAI(): Promise<ProviderResult> {
+  if (!process.env.OPENAI_API_KEY) {
+    return { configured: false, detail: "OPENAI_API_KEY not set" };
+  }
+  const t0 = Date.now();
+  try {
+    const OpenAI = (await import("openai")).default;
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const res = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 8,
+      messages: [{ role: "user", content: PING_PROMPT }],
+    });
+    const text = res.choices[0]?.message?.content?.trim() ?? "";
+    return {
+      configured: true,
+      reachable: true,
+      ms: Date.now() - t0,
+      detail: `replied "${text.slice(0, 32)}"`,
+      model: "gpt-4o-mini",
+    };
+  } catch (err) {
+    return {
+      configured: true,
+      reachable: false,
+      ms: Date.now() - t0,
+      detail: err instanceof Error ? err.message : "unknown error",
+    };
+  }
+}
+
+async function probeGemini(): Promise<ProviderResult> {
+  const key = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
+  if (!key) {
+    return { configured: false, detail: "GEMINI_API_KEY (or GOOGLE_API_KEY) not set" };
+  }
+  const t0 = Date.now();
+  try {
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const client = new GoogleGenerativeAI(key);
+    const model = client.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const res = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: PING_PROMPT }] }],
+      generationConfig: { maxOutputTokens: 8 },
+    });
+    const text = res.response.text().trim();
+    return {
+      configured: true,
+      reachable: true,
+      ms: Date.now() - t0,
+      detail: `replied "${text.slice(0, 32)}"`,
+      model: "gemini-2.0-flash",
+    };
+  } catch (err) {
+    return {
+      configured: true,
+      reachable: false,
+      ms: Date.now() - t0,
+      detail: err instanceof Error ? err.message : "unknown error",
+    };
+  }
+}
+
+async function probeSupabase(): Promise<ProviderResult> {
+  const t0 = Date.now();
+  try {
+    const admin = createServiceRoleClient();
+    const { error } = await admin.from("plans").select("code").limit(1);
+    if (error) {
+      return {
+        configured: true,
+        reachable: false,
+        ms: Date.now() - t0,
+        detail: error.message,
+      };
+    }
+    return { configured: true, reachable: true, ms: Date.now() - t0, detail: "ok" };
+  } catch (err) {
+    return {
+      configured: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      reachable: false,
+      ms: Date.now() - t0,
+      detail: err instanceof Error ? err.message : "supabase failure",
+    };
+  }
+}
+
+export async function GET() {
+  const [anthropic, openai, gemini, supabase] = await Promise.all([
+    probeAnthropic(),
+    probeOpenAI(),
+    probeGemini(),
+    probeSupabase(),
+  ]);
+
+  const llmAny = [anthropic, openai, gemini].some((p) => p.configured && p.reachable);
+  const overall = supabase.reachable === true && llmAny;
+
+  return NextResponse.json(
+    {
+      ok: overall,
+      build: process.env.COMMIT_REF ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown",
+      time: new Date().toISOString(),
+      env: {
+        nextPublicAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+        defaultChatModel: process.env.DEFAULT_CHAT_MODEL ?? null,
+        embeddingProvider: process.env.EMBEDDING_PROVIDER ?? null,
+        nodeEnv: process.env.NODE_ENV ?? null,
+      },
+      providers: { anthropic, openai, gemini, supabase },
+      summary: summarize({ anthropic, openai, gemini, supabase, overall }),
+    },
+    {
+      status: overall ? 200 : 503,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
+}
+
+function summarize({
+  anthropic,
+  openai,
+  gemini,
+  supabase,
+  overall,
+}: {
+  anthropic: ProviderResult;
+  openai: ProviderResult;
+  gemini: ProviderResult;
+  supabase: ProviderResult;
+  overall: boolean;
+}): string {
+  if (overall) {
+    const working = [anthropic, openai, gemini].filter((p) => p.reachable).length;
+    return `Operational. ${working} LLM provider${working === 1 ? "" : "s"} reachable.`;
+  }
+  if (!supabase.reachable) {
+    return `Supabase unreachable: ${supabase.detail}. Check SUPABASE_SERVICE_ROLE_KEY + NEXT_PUBLIC_SUPABASE_URL.`;
+  }
+  const noLlm = !anthropic.configured && !openai.configured && !gemini.configured;
+  if (noLlm) {
+    return "No LLM provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in Netlify env vars and redeploy.";
+  }
+  const failures: string[] = [];
+  if (anthropic.configured && !anthropic.reachable) failures.push(`Anthropic: ${anthropic.detail}`);
+  if (openai.configured && !openai.reachable) failures.push(`OpenAI: ${openai.detail}`);
+  if (gemini.configured && !gemini.reachable) failures.push(`Gemini: ${gemini.detail}`);
+  return `LLM provider keys are set but all calls failed. ${failures.join(" | ")}`;
+}

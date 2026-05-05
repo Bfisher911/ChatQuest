@@ -12,6 +12,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { streamChat, type ChatModel, type ChatMessage } from "@/lib/llm/provider";
+import { friendlyLLMError } from "@/lib/llm/errors";
 import { searchKnowledge } from "@/lib/rag/search";
 import { buildSystemPrompt } from "@/lib/llm/prompt";
 import { logUsage } from "@/lib/llm/usage";
@@ -223,9 +224,11 @@ export async function POST(req: NextRequest) {
         );
         controller.close();
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Stream error";
+        const raw = err instanceof Error ? err.message : "Stream error";
+        const friendly = friendlyLLMError(raw);
+        console.error("[chat-preview] LLM call failed:", err);
         controller.enqueue(
-          encoder.encode(`event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`),
+          encoder.encode(`event: error\ndata: ${JSON.stringify({ error: friendly })}\n\n`),
         );
         controller.close();
       }
