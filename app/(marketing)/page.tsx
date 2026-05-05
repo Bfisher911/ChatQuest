@@ -98,7 +98,7 @@ export default function LandingPage() {
       <div style={{ padding: "0 28px 28px" }}>
         <div className="row-between" style={{ marginBottom: 16 }}>
           <Eyebrow>FEATURED CAPABILITIES</Eyebrow>
-          <div className="cq-mono" style={{ fontSize: 13 }}>06 / 06</div>
+          <div className="cq-mono" style={{ fontSize: 13 }} data-decorative-counter>06 / 06</div>
         </div>
         <div className="cq-grid cq-grid--3">
           {FEATURES.map((f) => (
@@ -125,7 +125,7 @@ export default function LandingPage() {
         <div style={{ marginTop: 32, border: "var(--frame) solid var(--ink)", padding: 24 }}>
           <div className="row-between" style={{ marginBottom: 14 }}>
             <Eyebrow>ROLES</Eyebrow>
-            <div className="cq-mono" style={{ fontSize: 12 }}>05 / 05</div>
+            <div className="cq-mono" style={{ fontSize: 12 }} data-decorative-counter>05 / 05</div>
           </div>
           <div className="cq-grid cq-grid--4" style={{ gap: 0 }}>
             {ROLES.map((r, i) => (

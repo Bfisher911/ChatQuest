@@ -447,3 +447,82 @@
   --ls-title: -0.02em;
   --line: var(--ink);
 }
+
+/* ───────── Decorative element hiding for non-brutalist themes ─────────
+ * Brutalist's identity uses binary indices (00000001), N/M counters, and
+ * pixel-font corner labels as visual cues. In calmer themes these read
+ * as noise — a learner doesn't care about the binary-encoded position
+ * of their chatrail. Hide them quietly and let the surrounding info
+ * carry meaning. */
+:not([data-theme="brutalist"]) .cq-hero__index,
+:not([data-theme="brutalist"]) .cq-hero__corner {
+  display: none;
+}
+
+/* Cassette indices — keep them but render as soft mono "01", not pixel
+ * font "00000001". The CassetteStats component passes binary; we shrink
+ * + mute it instead of hiding so the count is still scannable. */
+:not([data-theme="brutalist"]) .cq-cassette__index {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* The "06 / 06" / "05 / 05" / similar binary-style "N / M" mono counters
+ * decorating section headers in marketing pages aren't communicating
+ * meaningful state — they're vestigial. Mute them in non-brutalist
+ * themes; brutalist keeps them as part of the look. */
+:not([data-theme="brutalist"]) [data-decorative-counter] {
+  display: none;
+}
+
+/* Footer "SCREEN 0001 / 0001" counter — pure decoration. */
+:not([data-theme="brutalist"]) .cq-footer-counter,
+:not([data-theme="brutalist"]) .cq-footer-counter + span,
+:not([data-theme="brutalist"]) .cq-footer .row span:not(.n) {
+  /* The whole "SCREEN 0001 / 0001" cluster lives inside .cq-footer .row.
+     Hide the wrapping row entirely on non-brutalist themes; the
+     copyright text on the left still renders. */
+}
+:not([data-theme="brutalist"]) .cq-footer .row:has(.cq-footer-counter) {
+  display: none;
+}
+
+/* The brutalist hero crops giant ALL-CAPS title with very tight leading
+ * (line-height: 0.9). In clean / dark / system the same headline reads
+ * better with looser leading and a darker accent on the period. */
+:not([data-theme="brutalist"]) .cq-hero__title {
+  text-transform: none;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  font-weight: 800;
+}
+:not([data-theme="brutalist"]) .cq-hero__sub {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--muted);
+  text-transform: none;
+}
+
+/* Cassette body text (the descriptive <p> inside cassettes) defaults to
+ * the brutalist mono font. In calmer themes prefer sans + a softer
+ * color so the title stays the focal point. */
+:not([data-theme="brutalist"]) .cq-cassette p {
+  font-family: var(--font-sans) !important;
+  color: var(--muted);
+}
+
+/* Eyebrow + count pair like "CHATRAILS 4 TOTAL" in dashboard headers —
+ * the "4 TOTAL" is mono ALL CAPS in brutalist. Calm version: muted
+ * sentence case. */
+:not([data-theme="brutalist"]) [data-decorative-count] {
+  font-family: var(--font-sans) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 13px !important;
+  color: var(--muted);
+  font-weight: 500;
+}

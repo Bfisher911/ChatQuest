@@ -229,7 +229,7 @@ export async function InstructorDashboard({
       <div className="row-between" style={{ marginBottom: 16 }}>
         <div className="row" style={{ gap: 16 }}>
           <Eyebrow>CHATRAILS</Eyebrow>
-          <div className="cq-mono" style={{ fontSize: 13, color: "var(--muted)" }}>
+          <div className="cq-mono" style={{ fontSize: 13, color: "var(--muted)" }} data-decorative-count>
             {ownPrograms?.length ?? 0} TOTAL
           </div>
         </div>

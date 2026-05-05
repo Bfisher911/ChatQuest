@@ -134,7 +134,7 @@ export async function LearnerDashboard({
 
       <div className="row-between" style={{ marginBottom: 16 }}>
         <Eyebrow>MY CHATRAILS</Eyebrow>
-        <div className="cq-mono" style={{ fontSize: 13, color: "var(--muted)" }}>
+        <div className="cq-mono" style={{ fontSize: 13, color: "var(--muted)" }} data-decorative-count>
           {programs.length} TOTAL
         </div>
       </div>
