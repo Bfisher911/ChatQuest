@@ -13,8 +13,17 @@ export function GenerateChatrailForm() {
   const [prompt, setPrompt] = React.useState("");
   // Default to Haiku — it produces a great Chatrail in ~5–10s vs Sonnet's
   // 25–45s, and the latter often bumped against Netlify's Lambda timeout
-  // for 7-node plans. Creators can opt up to Sonnet for deeper drafts.
-  const [model, setModel] = React.useState<"claude-sonnet-4-6" | "claude-haiku-4-5" | "gpt-4o">("claude-haiku-4-5");
+  // for 7-node plans. Creators can opt up to Sonnet or Gemini 3 Pro for
+  // deeper drafts, or pick Gemini 3 Flash for the cheapest path.
+  type DesignerModel =
+    | "claude-haiku-4-5"
+    | "claude-sonnet-4-6"
+    | "gpt-4o"
+    | "gpt-4o-mini"
+    | "gemini-3-flash-preview"
+    | "gemini-3-pro-preview"
+    | "gemini-flash-latest";
+  const [model, setModel] = React.useState<DesignerModel>("claude-haiku-4-5");
   const [pending, setPending] = React.useState(false);
   const [progress, setProgress] = React.useState<string>("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -141,16 +150,24 @@ export function GenerateChatrailForm() {
           DESIGNER MODEL
           <select
             value={model}
-            onChange={(e) =>
-              setModel(e.target.value as "claude-sonnet-4-6" | "claude-haiku-4-5" | "gpt-4o")
-            }
+            onChange={(e) => setModel(e.target.value as DesignerModel)}
             disabled={pending}
             className="cq-select"
-            style={{ minWidth: 220 }}
+            style={{ minWidth: 260 }}
           >
-            <option value="claude-haiku-4-5">claude-haiku-4-5 (default — ~5–10s)</option>
-            <option value="claude-sonnet-4-6">claude-sonnet-4-6 (deeper drafts — ~25–40s)</option>
-            <option value="gpt-4o">gpt-4o (alternative)</option>
+            <optgroup label="Anthropic Claude">
+              <option value="claude-haiku-4-5">claude-haiku-4-5 (default — ~5–10s)</option>
+              <option value="claude-sonnet-4-6">claude-sonnet-4-6 (deeper drafts — ~25–40s)</option>
+            </optgroup>
+            <optgroup label="OpenAI">
+              <option value="gpt-4o-mini">gpt-4o-mini (cheap, fast)</option>
+              <option value="gpt-4o">gpt-4o (alternative)</option>
+            </optgroup>
+            <optgroup label="Google Gemini">
+              <option value="gemini-3-flash-preview">gemini-3-flash-preview (fast)</option>
+              <option value="gemini-3-pro-preview">gemini-3-pro-preview (deepest)</option>
+              <option value="gemini-flash-latest">gemini-flash-latest (auto-tracking)</option>
+            </optgroup>
           </select>
         </label>
         <span className="cq-mono" style={{ fontSize: 11, color: "var(--muted)" }}>

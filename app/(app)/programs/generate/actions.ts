@@ -16,6 +16,12 @@ const generateSchema = z.object({
       "claude-3-5-sonnet-latest",
       "gpt-4o",
       "gpt-4o-mini",
+      // Gemini 3 designer-model options. Pro is best for deep curriculum
+      // structure; Flash is cheapest fast option; latest auto-tracks.
+      "gemini-3-flash-preview",
+      "gemini-3-pro-preview",
+      "gemini-flash-latest",
+      "gemini-pro-latest",
     ])
     .default("claude-haiku-4-5"),
 });
