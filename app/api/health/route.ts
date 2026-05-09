@@ -25,22 +25,33 @@ async function probeSupabase(): Promise<Probe> {
   }
 }
 
+// Liveness probes only check whether a key is configured — they do NOT
+// validate format, since provider key formats change over time and false
+// negatives based on a hardcoded prefix are worse than the upside.
+// /api/diagnostics does the real round-trip ping when you actually
+// want to know the key works.
+
+function keyPresent(name: string): Probe {
+  const v = process.env[name];
+  return v && v.length > 0
+    ? { ok: true, detail: "key present" }
+    : { ok: false, detail: "no key" };
+}
+
 async function probeAnthropic(): Promise<Probe> {
-  if (!process.env.ANTHROPIC_API_KEY) return { ok: false, detail: "no key" };
-  // We don't actually call Anthropic on /health to avoid rate-limit waste —
-  // just confirm the key shape.
-  return { ok: process.env.ANTHROPIC_API_KEY.startsWith("sk-ant-"), detail: "key present" };
+  return keyPresent("ANTHROPIC_API_KEY");
 }
 
 async function probeOpenAI(): Promise<Probe> {
-  if (!process.env.OPENAI_API_KEY) return { ok: false, detail: "no key" };
-  return { ok: process.env.OPENAI_API_KEY.startsWith("sk-"), detail: "key present" };
+  return keyPresent("OPENAI_API_KEY");
 }
 
 async function probeGemini(): Promise<Probe> {
-  if (!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY))
-    return { ok: false, detail: "no key" };
-  return { ok: true, detail: "key present" };
+  // Either env var is acceptable.
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
+    return { ok: true, detail: "key present" };
+  }
+  return { ok: false, detail: "no key" };
 }
 
 async function probeStripe(): Promise<Probe> {

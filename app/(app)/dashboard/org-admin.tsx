@@ -4,6 +4,7 @@ import { Cassette, Chip, Eyebrow, Icon, Btn, Frame } from "@/components/brutalis
 import { bin } from "@/lib/utils/binary";
 import { getMonthlyTokenUsage } from "@/lib/usage/check";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { EnvMisconfigBanner } from "@/components/dashboard/env-misconfig-banner";
 
 type Supabase = ReturnType<typeof import("@/lib/supabase/server").createClient>;
 
@@ -73,6 +74,7 @@ export async function OrgAdminDashboard({
 
   return (
     <div className="cq-page">
+      <EnvMisconfigBanner />
       <Frame style={{ padding: 28, marginBottom: 24, position: "relative" }}>
         <div className="cq-cassette__corner">
           <Icon name="lock" size={10} /> ORG ADMIN

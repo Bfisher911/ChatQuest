@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Cassette, CassetteStats, Chip, Eyebrow, Icon, Btn, Frame } from "@/components/brutalist";
 import { bin } from "@/lib/utils/binary";
+import { EnvMisconfigBanner } from "@/components/dashboard/env-misconfig-banner";
 
 type Supabase = ReturnType<typeof import("@/lib/supabase/server").createClient>;
 
@@ -46,6 +47,7 @@ export async function SuperAdminDashboard({
 
   return (
     <div className="cq-page">
+      <EnvMisconfigBanner />
       <Frame style={{ padding: 28, marginBottom: 24, position: "relative" }}>
         <div className="cq-cassette__corner">
           <Icon name="lock" size={10} /> PLATFORM

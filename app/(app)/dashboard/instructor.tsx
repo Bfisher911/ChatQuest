@@ -4,6 +4,7 @@ import { Cassette, CassetteStats, CassetteChips, Chip, Eyebrow, Icon, IconBtn, B
 import { bin } from "@/lib/utils/binary";
 import { OnboardingChecklist, type ChecklistItemSpec } from "@/components/dashboard/onboarding-checklist";
 import { relativeTime } from "@/lib/utils/relative-time";
+import { EnvMisconfigBanner } from "@/components/dashboard/env-misconfig-banner";
 
 type Supabase = ReturnType<typeof import("@/lib/supabase/server").createClient>;
 
@@ -184,6 +185,7 @@ export async function InstructorDashboard({
 
   return (
     <div className="cq-page">
+      <EnvMisconfigBanner />
       <OnboardingChecklist items={checklist} />
       <div className="cq-frame" style={{ padding: 28, marginBottom: 24, position: "relative" }}>
         <div className="cq-cassette__corner">
