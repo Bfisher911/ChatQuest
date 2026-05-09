@@ -130,7 +130,11 @@ export async function generateChatrailFromPrompt(input: z.infer<typeof generateS
         display_order: i,
         points: n.points,
         is_required: true,
-        config: Object.keys(config).length > 0 ? config : null,
+        // path_nodes.config is `not null default '{}'::jsonb`. Postgres
+        // only applies the default when the column is OMITTED from the
+        // INSERT — explicitly passing null violates the NOT NULL
+        // constraint. Always pass at least an empty object.
+        config,
       })
       .select("id")
       .single();
