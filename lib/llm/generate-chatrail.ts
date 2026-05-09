@@ -55,9 +55,9 @@ export const generatedPlanSchema = z.object({
       "gpt-4o",
       "gpt-4.1-mini",
       "gpt-4.1",
-      "gemini-2.0-flash",
-      "gemini-2.0-flash-lite",
-      "gemini-1.5-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
     ])
     .default("claude-haiku-4-5"),
   nodes: z.array(generatedNodeSchema).min(1).max(12),
@@ -97,7 +97,7 @@ Return ONLY a JSON object matching this exact shape — no prose, no markdown fe
 {
   "title": "Title under 120 chars",
   "description": "1–2 sentence learner-facing description",
-  "defaultModel": "claude-haiku-4-5" | "claude-sonnet-4-6" | "claude-3-5-sonnet-latest" | "claude-3-5-haiku-latest" | "gpt-4o" | "gpt-4o-mini" | "gpt-4.1" | "gpt-4.1-mini" | "gemini-2.0-flash" | "gemini-2.0-flash-lite" | "gemini-1.5-flash",
+  "defaultModel": "claude-haiku-4-5" | "claude-sonnet-4-6" | "claude-3-5-sonnet-latest" | "claude-3-5-haiku-latest" | "gpt-4o" | "gpt-4o-mini" | "gpt-4.1" | "gpt-4.1-mini" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.5-flash-lite",
   "nodes": [
     {
       "title": "Node title",

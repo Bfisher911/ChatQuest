@@ -17,11 +17,18 @@ export type ChatModel =
   | "gpt-4o-mini"
   | "gpt-4.1"
   | "gpt-4.1-mini"
-  // Gemini
-  | "gemini-2.0-flash"
-  | "gemini-2.0-flash-lite"
-  | "gemini-1.5-pro"
-  | "gemini-1.5-flash"
+  // Gemini — Google deprecated 1.x and 2.0 names in 2026; 2.5 is the
+  // current generation for new accounts. Keep the legacy names typed
+  // but unused-by-default so existing chatbot_configs rows don't break;
+  // the runtime call will surface a friendly "model not available" if
+  // a saved bot points at a retired name.
+  | "gemini-2.5-pro"
+  | "gemini-2.5-flash"
+  | "gemini-2.5-flash-lite"
+  | "gemini-2.0-flash"           // deprecated — kept for type-compat with old DB rows
+  | "gemini-2.0-flash-lite"      // deprecated — kept for type-compat
+  | "gemini-1.5-pro"             // deprecated — kept for type-compat
+  | "gemini-1.5-flash"           // deprecated — kept for type-compat
   // Open
   | "auto";
 

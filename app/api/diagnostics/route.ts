@@ -100,7 +100,8 @@ async function probeGemini(): Promise<ProviderResult> {
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const client = new GoogleGenerativeAI(key);
-    const model = client.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const modelName = "gemini-2.5-flash";
+    const model = client.getGenerativeModel({ model: modelName });
     const res = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: PING_PROMPT }] }],
       generationConfig: { maxOutputTokens: 8 },
@@ -111,7 +112,7 @@ async function probeGemini(): Promise<ProviderResult> {
       reachable: true,
       ms: Date.now() - t0,
       detail: `replied "${text.slice(0, 32)}"`,
-      model: "gemini-2.0-flash",
+      model: modelName,
     };
   } catch (err) {
     return {
