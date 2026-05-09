@@ -145,8 +145,19 @@ export async function generateChatrailFromPrompt(input: z.infer<typeof generateS
       .select("id")
       .single();
     if (nodeErr || !node) {
-      // Stop inserting further nodes but leave the program in place — see
-      // the rollback note in the docstring.
+      // First node failed — roll back the empty program row so it doesn't
+      // count against the user's plan-feature cap (free plan = 1 active
+      // program, and an orphan empty draft eats that slot until manually
+      // deleted). FK cascade clears program_instructors + knowledge
+      // collections we just created. If we got past the first node then
+      // we leave the partial in place so the creator can salvage it.
+      if (insertedNodeIds.length === 0) {
+        await admin.from("programs").delete().eq("id", program.id);
+        return {
+          ok: false,
+          error: `Generation failed before any nodes could be saved (${nodeErr?.message ?? "unknown error"}). The empty draft has been cleaned up — try generating again.`,
+        };
+      }
       return {
         ok: false,
         error: `Inserted ${insertedNodeIds.length}/${plan.nodes.length} nodes before failing: ${nodeErr?.message ?? "unknown error"}. The Chatrail is in draft — you can keep editing or delete it.`,
