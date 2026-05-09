@@ -147,17 +147,17 @@ export async function canSeatInstructor(
 export async function allowedModelsForPlan(planCode: string): Promise<string[]> {
   // Free plans get cheap models only; paid plans get everything.
   const plan = await getPlan(planCode);
-  if (!plan) return ["claude-haiku-4-5", "gpt-4o-mini", "gemini-2.5-flash"];
+  if (!plan) return ["claude-haiku-4-5", "gpt-4o-mini", "gemini-3-flash"];
   if (planCode === "free") {
-    return ["claude-haiku-4-5", "gpt-4o-mini", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+    return ["claude-haiku-4-5", "gpt-4o-mini", "gemini-3-flash", "gemini-3-flash-lite"];
   }
   if (planCode === "instr_basic") {
     return [
       "claude-haiku-4-5",
       "claude-3-5-haiku-latest",
       "gpt-4o-mini",
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
+      "gemini-3-flash",
+      "gemini-3-flash-lite",
     ];
   }
   // Pro / premium / org tiers — everything.
@@ -171,6 +171,10 @@ export async function allowedModelsForPlan(planCode: string): Promise<string[]> 
     "gpt-4o-mini",
     "gpt-4.1",
     "gpt-4.1-mini",
+    "gemini-3-pro",
+    "gemini-3-flash",
+    "gemini-3-flash-lite",
+    // Gemini 2.5 still allowed for compat with older bot configs
     "gemini-2.5-pro",
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",

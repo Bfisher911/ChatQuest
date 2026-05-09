@@ -39,7 +39,10 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
   const [dirty, setDirty] = React.useState(false);
   // Mirror cost-relevant inputs into state so we can compute a live cost
   // estimate without making each input fully controlled.
-  const [model, setModel] = React.useState<string>(cfg?.model ?? "claude-haiku-4-5");
+  // New bots default to gemini-3-flash — fast + cheap + currently the
+  // recommended Gemini chat model. Existing bots keep whatever model
+  // they were saved with.
+  const [model, setModel] = React.useState<string>(cfg?.model ?? "gemini-3-flash");
   const [tokenBudget, setTokenBudget] = React.useState<number>(cfg?.token_budget ?? 8000);
   const [attemptsAllowed, setAttemptsAllowed] = React.useState<number>(cfg?.attempts_allowed ?? 2);
 
@@ -141,6 +144,9 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
               <option value="gpt-4.1">gpt-4.1</option>
             </optgroup>
             <optgroup label="Google Gemini">
+              <option value="gemini-3-pro">gemini-3-pro</option>
+              <option value="gemini-3-flash">gemini-3-flash (recommended)</option>
+              <option value="gemini-3-flash-lite">gemini-3-flash-lite</option>
               <option value="gemini-2.5-pro">gemini-2.5-pro</option>
               <option value="gemini-2.5-flash">gemini-2.5-flash</option>
               <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>

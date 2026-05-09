@@ -13,7 +13,11 @@ const COST_PER_M_TOKENS: Record<string, { input: number; output: number }> = {
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gpt-4.1": { input: 2, output: 8 },
   "gpt-4.1-mini": { input: 0.4, output: 1.6 },
-  // Google Gemini — current 2.5 generation
+  // Google Gemini 3 family (current as of mid-2026)
+  "gemini-3-pro": { input: 2, output: 10 },
+  "gemini-3-flash": { input: 0.3, output: 2.5 },
+  "gemini-3-flash-lite": { input: 0.1, output: 0.4 },
+  // Gemini 2.5 (still supported but Google steers new use to 3.x)
   "gemini-2.5-pro": { input: 1.25, output: 10 },
   "gemini-2.5-flash": { input: 0.3, output: 2.5 },
   "gemini-2.5-flash-lite": { input: 0.1, output: 0.4 },
