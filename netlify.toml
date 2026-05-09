@@ -28,11 +28,13 @@
 # `headers()` callback so they apply to every Next.js route — including the
 # SSR/Lambda paths that don't go through Netlify's [[headers]] block.
 
-# Generic function timeout. Server Actions, Drizzle queries against Supavisor,
-# and Supabase auth signUp can all exceed Netlify's 10s default — bump to 30s
-# globally so signup doesn't appear "stuck on Creating…".
+# Generic function timeout. Server Actions and any handler that calls an
+# LLM can blow past Netlify's 10s default. The AI Chatrail generator does
+# a structured-JSON Sonnet call that takes 25–45s for a 7-node plan, plus
+# DB inserts. 60s is the highest Netlify accepts on most plans and gives
+# headroom without inviting truly-stuck calls to hold the Lambda forever.
 [functions."*"]
-  timeout = 30
+  timeout = 60
 
 # Long-running requests (RAG indexing, multi-turn chat streaming).
 [functions."api/kb/*"]

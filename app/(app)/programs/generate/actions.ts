@@ -17,7 +17,7 @@ const generateSchema = z.object({
       "gpt-4o",
       "gpt-4o-mini",
     ])
-    .default("claude-sonnet-4-6"),
+    .default("claude-haiku-4-5"),
 });
 
 export type GenerateChatrailResult =

@@ -11,7 +11,10 @@ const MIN_LENGTH = 20;
 export function GenerateChatrailForm() {
   const router = useRouter();
   const [prompt, setPrompt] = React.useState("");
-  const [model, setModel] = React.useState<"claude-sonnet-4-6" | "claude-haiku-4-5" | "gpt-4o">("claude-sonnet-4-6");
+  // Default to Haiku — it produces a great Chatrail in ~5–10s vs Sonnet's
+  // 25–45s, and the latter often bumped against Netlify's Lambda timeout
+  // for 7-node plans. Creators can opt up to Sonnet for deeper drafts.
+  const [model, setModel] = React.useState<"claude-sonnet-4-6" | "claude-haiku-4-5" | "gpt-4o">("claude-haiku-4-5");
   const [pending, setPending] = React.useState(false);
   const [progress, setProgress] = React.useState<string>("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -68,16 +71,30 @@ export function GenerateChatrailForm() {
       return;
     }
     setPending(true);
-    const res = await generateChatrailFromPrompt({ prompt: prompt.trim(), model });
-    if (!res.ok) {
+    try {
+      const res = await generateChatrailFromPrompt({ prompt: prompt.trim(), model });
+      if (!res.ok) {
+        setPending(false);
+        toast.error(res.error);
+        return;
+      }
+      toast.success(`Generated ${res.nodeCount} nodes — opening the new Chatrail.`);
+      // Don't reset pending — we're navigating away.
+      router.push(`/programs/${res.programId}`);
+      router.refresh();
+    } catch (err: unknown) {
+      // Netlify Lambda timeout, network blip, or any uncaught throw lands
+      // here. Without this, the await rejects and onSubmit unwinds without
+      // resetting `pending` — the user sees the spinner stuck and assumes
+      // "nothing happened."
+      const msg = err instanceof Error ? err.message : "Generator failed";
+      const friendlier = /timeout|aborted|fetch failed|504|502/i.test(msg)
+        ? "The generator took too long to respond. Try again with a shorter prompt or pick the faster Haiku model."
+        : msg;
+      console.error("[generate] action threw:", err);
       setPending(false);
-      toast.error(res.error);
-      return;
+      toast.error(friendlier);
     }
-    toast.success(`Generated ${res.nodeCount} nodes — opening the new Chatrail.`);
-    // Don't reset pending — we're navigating away.
-    router.push(`/programs/${res.programId}`);
-    router.refresh();
   }
 
   const charsLeft = 4000 - prompt.length;
@@ -131,8 +148,8 @@ export function GenerateChatrailForm() {
             className="cq-select"
             style={{ minWidth: 220 }}
           >
-            <option value="claude-sonnet-4-6">claude-sonnet-4-6 (recommended)</option>
-            <option value="claude-haiku-4-5">claude-haiku-4-5 (fastest, cheapest)</option>
+            <option value="claude-haiku-4-5">claude-haiku-4-5 (default — ~5–10s)</option>
+            <option value="claude-sonnet-4-6">claude-sonnet-4-6 (deeper drafts — ~25–40s)</option>
             <option value="gpt-4o">gpt-4o (alternative)</option>
           </select>
         </label>
