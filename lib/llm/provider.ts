@@ -17,14 +17,20 @@ export type ChatModel =
   | "gpt-4o-mini"
   | "gpt-4.1"
   | "gpt-4.1-mini"
-  // Gemini — 3.x is the current generation as of mid-2026. 2.5 still
-  // works but Google is steering new traffic at the 3 family. Keep
-  // older names typed but unused-by-default so existing chatbot_configs
-  // rows don't break; the runtime call surfaces a friendly "model not
-  // available" if a saved bot points at a retired name.
-  | "gemini-3-pro"
-  | "gemini-3-flash"
-  | "gemini-3-flash-lite"
+  // Gemini — 3.x is the current generation. As of mid-2026 the 3 Pro
+  // and 3 Flash models live behind a -preview suffix on Google's API
+  // (verified via ListModels); 3.1-flash-lite is already GA. The
+  // *-latest aliases track Google's newest stable model in each tier
+  // and are the safest defaults for ops that don't want to chase
+  // model names.
+  | "gemini-3-pro-preview"
+  | "gemini-3-flash-preview"
+  | "gemini-3.1-pro-preview"
+  | "gemini-3.1-flash-lite"
+  | "gemini-flash-latest"
+  | "gemini-pro-latest"
+  | "gemini-flash-lite-latest"
+  // 2.5 still works for compat with older bot configs.
   | "gemini-2.5-pro"
   | "gemini-2.5-flash"
   | "gemini-2.5-flash-lite"

@@ -55,9 +55,13 @@ export const generatedPlanSchema = z.object({
       "gpt-4o",
       "gpt-4.1-mini",
       "gpt-4.1",
-      "gemini-3-pro",
-      "gemini-3-flash",
-      "gemini-3-flash-lite",
+      "gemini-3-pro-preview",
+      "gemini-3-flash-preview",
+      "gemini-3.1-pro-preview",
+      "gemini-3.1-flash-lite",
+      "gemini-flash-latest",
+      "gemini-pro-latest",
+      "gemini-flash-lite-latest",
       "gemini-2.5-pro",
       "gemini-2.5-flash",
       "gemini-2.5-flash-lite",
@@ -100,7 +104,7 @@ Return ONLY a JSON object matching this exact shape — no prose, no markdown fe
 {
   "title": "Title under 120 chars",
   "description": "1–2 sentence learner-facing description",
-  "defaultModel": "claude-haiku-4-5" | "claude-sonnet-4-6" | "claude-3-5-sonnet-latest" | "claude-3-5-haiku-latest" | "gpt-4o" | "gpt-4o-mini" | "gpt-4.1" | "gpt-4.1-mini" | "gemini-3-pro" | "gemini-3-flash" | "gemini-3-flash-lite" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.5-flash-lite",
+  "defaultModel": "claude-haiku-4-5" | "claude-sonnet-4-6" | "claude-3-5-sonnet-latest" | "claude-3-5-haiku-latest" | "gpt-4o" | "gpt-4o-mini" | "gpt-4.1" | "gpt-4.1-mini" | "gemini-3-pro-preview" | "gemini-3-flash-preview" | "gemini-3.1-pro-preview" | "gemini-3.1-flash-lite" | "gemini-flash-latest" | "gemini-pro-latest" | "gemini-flash-lite-latest" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.5-flash-lite",
   "nodes": [
     {
       "title": "Node title",

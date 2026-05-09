@@ -39,10 +39,10 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
   const [dirty, setDirty] = React.useState(false);
   // Mirror cost-relevant inputs into state so we can compute a live cost
   // estimate without making each input fully controlled.
-  // New bots default to gemini-3-flash — fast + cheap + currently the
-  // recommended Gemini chat model. Existing bots keep whatever model
-  // they were saved with.
-  const [model, setModel] = React.useState<string>(cfg?.model ?? "gemini-3-flash");
+  // New bots default to gemini-3-flash-preview — fast + cheap + the
+  // canonical Gemini 3 Flash model name on Google's API. Existing bots
+  // keep whatever model they were saved with.
+  const [model, setModel] = React.useState<string>(cfg?.model ?? "gemini-3-flash-preview");
   const [tokenBudget, setTokenBudget] = React.useState<number>(cfg?.token_budget ?? 8000);
   const [attemptsAllowed, setAttemptsAllowed] = React.useState<number>(cfg?.attempts_allowed ?? 2);
 
@@ -144,9 +144,13 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
               <option value="gpt-4.1">gpt-4.1</option>
             </optgroup>
             <optgroup label="Google Gemini">
-              <option value="gemini-3-pro">gemini-3-pro</option>
-              <option value="gemini-3-flash">gemini-3-flash (recommended)</option>
-              <option value="gemini-3-flash-lite">gemini-3-flash-lite</option>
+              <option value="gemini-3-flash-preview">gemini-3-flash-preview (recommended)</option>
+              <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
+              <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+              <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+              <option value="gemini-flash-latest">gemini-flash-latest (auto-tracking)</option>
+              <option value="gemini-pro-latest">gemini-pro-latest (auto-tracking)</option>
+              <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
               <option value="gemini-2.5-pro">gemini-2.5-pro</option>
               <option value="gemini-2.5-flash">gemini-2.5-flash</option>
               <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
