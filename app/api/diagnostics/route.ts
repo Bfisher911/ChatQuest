@@ -148,7 +148,44 @@ async function probeSupabase(): Promise<ProviderResult> {
   }
 }
 
-export async function GET() {
+/**
+ * Debug-only branch: hit /api/diagnostics?gemini=list to enumerate the
+ * Gemini models the configured key can actually call. Returns the raw
+ * ListModels response so we can verify the canonical model name when
+ * Google rolls a new generation. Public via middleware allowlist; the
+ * Gemini key never leaves the server, only model names come back.
+ */
+async function listGeminiModels(): Promise<unknown> {
+  const key = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
+  if (!key) return { error: "no key" };
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`,
+    );
+    if (!res.ok) return { error: `status ${res.status}`, body: await res.text() };
+    const data = (await res.json()) as { models?: Array<{ name?: string; supportedGenerationMethods?: string[] }> };
+    return {
+      models: (data.models ?? [])
+        .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+        .map((m) => m.name)
+        .sort(),
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function GET(req: Request) {
+  // Optional debug branch: ?gemini=list returns the list of Gemini models
+  // the key can call. Used to verify canonical names when a generation
+  // gets rolled out.
+  const url = new URL(req.url);
+  if (url.searchParams.get("gemini") === "list") {
+    return NextResponse.json(await listGeminiModels(), {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
   const [anthropic, openai, gemini, supabase] = await Promise.all([
     probeAnthropic(),
     probeOpenAI(),
