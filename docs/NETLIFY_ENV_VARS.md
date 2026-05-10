@@ -1,14 +1,11 @@
-# Netlify environment variables — required for the AI to work
+# Netlify environment variables — Gemini-only deployment
 
-Last updated: 2026-05-05
+Last updated: 2026-05-09
 
-The Chatrail codebase is fully wired for Anthropic, OpenAI, and Google
-Gemini. **The site cannot reach any AI provider in production unless
-the corresponding API key is set as a Netlify environment variable
-and the site is redeployed.**
-
-This is the checklist for getting the live deploy at
-<https://chattrail.netlify.app> talking to a real AI provider.
+This deployment runs on **Google Gemini only**. The codebase's LLM provider
+abstraction supports Anthropic Claude and OpenAI, but the UI pickers,
+default models, and AI generator are restricted to Gemini so you don't
+accidentally rack up bills on services you haven't signed up for.
 
 ---
 
@@ -18,43 +15,44 @@ Hit the diagnostics endpoint (no auth required):
 
 <https://chattrail.netlify.app/api/diagnostics>
 
-You'll get JSON like:
+For a healthy deployment you want to see:
 
 ```json
 {
-  "ok": false,
-  "summary": "No LLM provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in Netlify env vars and redeploy.",
+  "ok": true,
+  "summary": "Operational. 1 LLM provider reachable.",
+  "env": {
+    "defaultChatModel": "gemini-3-flash-preview",
+    "embeddingProvider": "gemini"
+  },
   "providers": {
-    "anthropic": { "configured": false, "detail": "ANTHROPIC_API_KEY not set" },
-    "openai":    { "configured": false, "detail": "OPENAI_API_KEY not set" },
-    "gemini":    { "configured": false, "detail": "GEMINI_API_KEY (or GOOGLE_API_KEY) not set" },
-    "supabase":  { "configured": true,  "reachable": true, "ms": 88 }
+    "gemini":   { "configured": true, "reachable": true, "ms": 800 },
+    "supabase": { "configured": true, "reachable": true, "ms": 100 }
   }
 }
 ```
 
-If `summary` says "Operational. N LLM providers reachable.", you're done.
-If not, the `providers.*.detail` field tells you exactly what's wrong.
+The `anthropic` and `openai` blocks may show `"configured": false` —
+that's fine. The site is Gemini-only.
+
+If `summary` mentions misconfiguration, the `providers.*.detail` field
+tells you exactly what's wrong.
 
 ---
 
 ## Step 2 — Set the keys on Netlify
 
 1. Go to <https://app.netlify.com/sites/chattrail/configuration/env>
-2. Click **Add a single variable** for each key below
-3. Scope: All scopes (or at minimum: Functions, Builds)
-4. After adding, click **Trigger deploy → Clear cache and deploy site**
+2. Click **Add a single variable** for each row below
+3. Scope: **All scopes** (or at minimum: Functions, Builds)
+4. After adding, you MUST click **Trigger deploy → Clear cache and deploy
+   site** — saving an env var on Netlify does NOT auto-deploy
 
-### Required: at least ONE LLM provider
+### Required: Gemini
 
-| Variable | Where to get it | Notes |
-| --- | --- | --- |
-| `ANTHROPIC_API_KEY` | <https://console.anthropic.com/settings/keys> | Recommended. Default chat model is `claude-haiku-4-5` |
-| `OPENAI_API_KEY` | <https://platform.openai.com/api-keys> | Also serves as embeddings provider when `EMBEDDING_PROVIDER=openai` |
-| `GEMINI_API_KEY` | <https://aistudio.google.com/app/apikey> | Free-tier friendly |
-
-You only need one to make chat work. Two or three gives users a model
-picker option without lock-in.
+| Variable | Where to get it |
+| --- | --- |
+| `GEMINI_API_KEY` | <https://aistudio.google.com/app/apikey> |
 
 ### Required: Supabase (likely already set)
 
@@ -64,38 +62,41 @@ picker option without lock-in.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anon key from Supabase Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secret.** Settings → API → service_role |
 
-If `/api/diagnostics` shows `supabase.reachable: true`, these are good.
+### Required: Gemini default + embedding settings
 
-### Required: app URL (for OG image, invite links, Stripe redirects)
+| Variable | Value |
+| --- | --- |
+| `DEFAULT_CHAT_MODEL` | `gemini-3-flash-preview` (recommended) or `gemini-flash-latest` |
+| `EMBEDDING_PROVIDER` | `gemini` |
+| `EMBEDDING_MODEL` | `text-embedding-004` |
+
+### Required: app URL (for OG images, invite links)
 
 | Variable | Value |
 | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | `https://chattrail.netlify.app` (or your custom domain) |
 
-> **Currently broken:** the OG image meta tags on the deployed site point
-> at `http://localhost:3000/opengraph-image` because this var was never
-> set. Setting it fixes social-share previews and invite-email links.
-
-### Optional: cost controls + observability
+### Optional
 
 | Variable | Purpose |
 | --- | --- |
-| `EMBEDDING_PROVIDER` | `openai` (recommended) or `gemini` |
-| `EMBEDDING_MODEL` | `text-embedding-3-small` (default) |
-| `DEFAULT_CHAT_MODEL` | Override the default model for new bots |
 | `RESEND_API_KEY` | Send real invite emails (else logs to console) |
 | `EMAIL_FROM` | `Chatrail <noreply@yourdomain.com>` |
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Persist rate limits across Lambda cold starts |
 | `SENTRY_DSN` | Capture server errors in Sentry |
+| `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` + `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | When you wire Stripe |
 
-### Optional: Stripe (when you're ready to charge)
+### NOT required (intentionally)
 
-| Variable | Purpose |
+| Variable | Why blank is fine |
 | --- | --- |
-| `STRIPE_SECRET_KEY` | Test or live mode |
-| `STRIPE_WEBHOOK_SECRET` | From `stripe listen` or Stripe Dashboard → Webhooks |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client-side Checkout init |
-| `STRIPE_PRICE_INSTR_BASIC` (etc) | Per-plan price IDs once products exist |
+| `ANTHROPIC_API_KEY` | UI pickers + generator don't expose Claude |
+| `OPENAI_API_KEY` | UI pickers + generator don't expose GPT |
+
+If you DO have keys for these, leaving them set is harmless — the code
+won't reach those providers because no node config or default ever
+resolves to a Claude / GPT model. But if you don't want to maintain
+Anthropic / OpenAI accounts, just leave them blank or remove them.
 
 ---
 
@@ -105,52 +106,63 @@ Wait ~2 minutes for Netlify to deploy, then re-hit:
 
 <https://chattrail.netlify.app/api/diagnostics>
 
-Look for `"ok": true` and a summary like
-`"Operational. 1 LLM provider reachable."`. The provider blocks should
-each show `reachable: true` and a `detail` like `replied "OK"`.
+Look for `"ok": true` and `env.defaultChatModel = "gemini-3-flash-preview"`.
+The `providers.gemini.reachable` should be `true` with a 5-token reply.
 
 ---
 
 ## Common failure modes
 
-### `ANTHROPIC_API_KEY not set`
-The variable was never added on Netlify. Add it in step 2.
+### Banner shows "Default chat model is deprecated"
+`DEFAULT_CHAT_MODEL` is set to a name Google's API doesn't recognize
+(e.g. `gemini-2.0-flash`, `gemini-1.5-pro`). Change to
+`gemini-3-flash-preview`. Save → **Trigger deploy → Clear cache and
+deploy site** (just saving doesn't redeploy).
 
-### `Anthropic: 401 ... Invalid API key`
-Key is set but wrong — typo, expired, or for a different account.
-Generate a fresh one and replace.
+### `Gemini key not configured`
+`GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is missing. Generate one at
+<https://aistudio.google.com/app/apikey>.
 
-### `Anthropic: 529 overloaded`
-Anthropic is having a moment. Try again in a minute. If it keeps happening,
-flip `DEFAULT_CHAT_MODEL` to an OpenAI or Gemini model temporarily.
+### `Gemini: 429 Too Many Requests`
+You're on the free tier and hit the daily quota. Either wait until the
+quota resets (24h) or upgrade to a paid Gemini tier in Google AI Studio.
 
-### `OpenAI: 429 Rate limit reached`
-Account hit a tier limit. Either wait, switch tier, or fall back to
-Anthropic by setting `DEFAULT_CHAT_MODEL=claude-haiku-4-5`.
+### `Gemini: 404 model not found for v1beta`
+Google deprecated the model name you're pointing at. The canonical
+current names (verified live via `/api/diagnostics?gemini=list`) are:
 
-### `Supabase reachable: false`
-`SUPABASE_SERVICE_ROLE_KEY` is wrong, or the Supabase project is paused.
-Check the Supabase dashboard.
+- `gemini-3-flash-preview` (Gemini 3 Flash, in preview)
+- `gemini-3-pro-preview` (Gemini 3 Pro, in preview)
+- `gemini-3.1-pro-preview` (Gemini 3.1 Pro, in preview)
+- `gemini-3.1-flash-lite` (GA)
+- `gemini-flash-latest` / `gemini-pro-latest` / `gemini-flash-lite-latest` (auto-tracking aliases — safest defaults)
+- `gemini-2.5-pro` / `gemini-2.5-flash` / `gemini-2.5-flash-lite` (legacy, still supported)
 
-### `Sign in` redirects despite a valid session
-Supabase Auth → URL Configuration → Site URL must match your deploy
-URL (e.g., `https://chattrail.netlify.app`). Add the URL also under
-Redirect URLs as `https://chattrail.netlify.app/**`.
+### Banner shows but env var was edited
+You saved the env var on Netlify but didn't trigger a deploy. Saving
+does NOT redeploy. Go to Deploys → **Trigger deploy → Clear cache and
+deploy site**.
+
+### Stuck on "Sign in" loop
+Supabase Auth → URL Configuration → Site URL must match the deploy URL.
+Add `https://chattrail.netlify.app/**` under Redirect URLs.
 
 ---
 
-## What's actually wired in code
+## What's actually wired in code (Gemini-only)
 
-You're not missing any code. The following are all implemented:
-
-- `lib/llm/provider.ts` — auto-routes by model prefix to Anthropic /
-  OpenAI / Gemini SDK; one common interface (`streamChat`, `completeChat`,
-  `embedBatch`)
-- `app/api/chat/stream/route.ts` — SSE streaming chat for learners
-- `app/api/chat/preview/route.ts` — ephemeral preview chat for creators
-- `app/api/grade/suggest/route.ts` — AI-suggested rubric scoring
-- `lib/llm/generate-chatrail.ts` — one-prompt Chatrail generator
-- `lib/llm/errors.ts` — friendly error classification (so missing-key
-  failures surface as actionable text instead of "Stream error")
+- `lib/llm/provider.ts` — auto-routes by model prefix, with `pickDefault()`
+  falling back to `gemini-3-flash-preview`
+- `app/(app)/programs/[id]/bot-node-form.tsx` — bot picker shows only the
+  Gemini lineup (no Anthropic / OpenAI optgroups)
+- `app/(app)/programs/generate/generate-form.tsx` — designer-model picker
+  is Gemini-only; Zod enum on the action matches
+- `lib/llm/generate-chatrail.ts` — generator's system prompt steers the
+  AI toward Gemini models for `defaultModel`
+- `lib/billing/gate.ts::allowedModelsForPlan` — every plan tier returns
+  Gemini-only model lists
+- `components/dashboard/env-misconfig-banner.tsx` — admin dashboard
+  banner flags missing `GEMINI_API_KEY`, deprecated `DEFAULT_CHAT_MODEL`,
+  or `EMBEDDING_PROVIDER` set to anything other than `gemini`
 
 The integration is complete. The remaining work is **configuration**.

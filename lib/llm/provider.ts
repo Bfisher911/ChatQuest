@@ -79,7 +79,10 @@ function isGemini(model: ChatModel) {
 }
 
 function pickDefault(): ChatModel {
-  return (process.env.DEFAULT_CHAT_MODEL as ChatModel) || "claude-haiku-4-5";
+  // Gemini-only deployment: fallback to gemini-3-flash-preview when
+  // DEFAULT_CHAT_MODEL is unset. Anthropic / OpenAI keys may exist but
+  // the deployment intentionally doesn't depend on them.
+  return (process.env.DEFAULT_CHAT_MODEL as ChatModel) || "gemini-3-flash-preview";
 }
 
 let _anthropic: Anthropic | null = null;

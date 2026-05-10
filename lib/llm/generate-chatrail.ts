@@ -44,17 +44,11 @@ export const generatedNodeSchema = z.object({
 export const generatedPlanSchema = z.object({
   title: z.string().min(2).max(120),
   description: z.string().min(10).max(800),
-  /** Default model for any bot whose `model` field isn't set. */
+  /** Default model for any bot whose `model` field isn't set.
+   *  Gemini-only deployment — Anthropic / OpenAI options are intentionally
+   *  excluded so the LLM doesn't suggest models the deployment can't run. */
   defaultModel: z
     .enum([
-      "claude-haiku-4-5",
-      "claude-sonnet-4-6",
-      "claude-3-5-sonnet-latest",
-      "claude-3-5-haiku-latest",
-      "gpt-4o-mini",
-      "gpt-4o",
-      "gpt-4.1-mini",
-      "gpt-4.1",
       "gemini-3-pro-preview",
       "gemini-3-flash-preview",
       "gemini-3.1-pro-preview",
@@ -66,7 +60,7 @@ export const generatedPlanSchema = z.object({
       "gemini-2.5-flash",
       "gemini-2.5-flash-lite",
     ])
-    .default("claude-haiku-4-5"),
+    .default("gemini-3-flash-preview"),
   nodes: z.array(generatedNodeSchema).min(1).max(12),
 });
 
@@ -104,7 +98,7 @@ Return ONLY a JSON object matching this exact shape — no prose, no markdown fe
 {
   "title": "Title under 120 chars",
   "description": "1–2 sentence learner-facing description",
-  "defaultModel": "claude-haiku-4-5" | "claude-sonnet-4-6" | "claude-3-5-sonnet-latest" | "claude-3-5-haiku-latest" | "gpt-4o" | "gpt-4o-mini" | "gpt-4.1" | "gpt-4.1-mini" | "gemini-3-pro-preview" | "gemini-3-flash-preview" | "gemini-3.1-pro-preview" | "gemini-3.1-flash-lite" | "gemini-flash-latest" | "gemini-pro-latest" | "gemini-flash-lite-latest" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.5-flash-lite",
+  "defaultModel": "gemini-3-flash-preview" | "gemini-3-pro-preview" | "gemini-3.1-pro-preview" | "gemini-3.1-flash-lite" | "gemini-flash-latest" | "gemini-pro-latest" | "gemini-flash-lite-latest" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.5-flash-lite",
   "nodes": [
     {
       "title": "Node title",
@@ -121,7 +115,7 @@ Return ONLY a JSON object matching this exact shape — no prose, no markdown fe
   ]
 }
 
-Pick defaultModel claude-haiku-4-5 for cost-sensitive cohorts, claude-sonnet-4-6 for higher-stakes work. Use Sonnet only when the bots need real depth.`;
+Pick defaultModel gemini-3-flash-preview for most Chatrails — fast, cheap, and current. Use gemini-3-pro-preview only when the bots need real depth (long-context reasoning, complex grading, multi-step planning). gemini-flash-latest is a stable auto-tracking alias.`;
 
 /**
  * Generate a validated Chatrail plan from a natural-language prompt.
@@ -131,7 +125,7 @@ Pick defaultModel claude-haiku-4-5 for cost-sensitive cohorts, claude-sonnet-4-6
  */
 export async function generateChatrailPlan({
   prompt,
-  model = "claude-sonnet-4-6",
+  model = "gemini-3-flash-preview",
   maxNodes = 7,
 }: {
   prompt: string;

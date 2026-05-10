@@ -130,19 +130,6 @@ export function BotNodeForm({ programId, mode, rubrics, node }: BotNodeFormProps
         <div className="cq-field">
           <label htmlFor="model">Model</label>
           <select id="model" name="model" value={model} onChange={(e) => setModel(e.target.value)} className="cq-select">
-            <optgroup label="Anthropic">
-              <option value="claude-haiku-4-5">claude-haiku-4-5</option>
-              <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
-              <option value="claude-opus-4-7">claude-opus-4-7</option>
-              <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
-              <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest</option>
-            </optgroup>
-            <optgroup label="OpenAI">
-              <option value="gpt-4o-mini">gpt-4o-mini</option>
-              <option value="gpt-4o">gpt-4o</option>
-              <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-              <option value="gpt-4.1">gpt-4.1</option>
-            </optgroup>
             <optgroup label="Google Gemini">
               <option value="gemini-3-flash-preview">gemini-3-flash-preview (recommended)</option>
               <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>

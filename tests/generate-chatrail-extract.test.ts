@@ -7,7 +7,7 @@ import { generatedPlanSchema } from "@/lib/llm/generate-chatrail";
 const VALID_PLAN = {
   title: "Stoic Foundations",
   description: "A short intro to Stoic philosophy with active practice.",
-  defaultModel: "claude-haiku-4-5",
+  defaultModel: "gemini-3-flash-preview",
   nodes: [
     {
       title: "Welcome to Stoicism",

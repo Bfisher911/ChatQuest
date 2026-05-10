@@ -145,40 +145,30 @@ export async function canSeatInstructor(
 }
 
 export async function allowedModelsForPlan(planCode: string): Promise<string[]> {
-  // Free plans get cheap models only; paid plans get everything.
+  // Gemini-only deployment. Free / paid tiers differ in which Gemini models
+  // are allowed — paid plans unlock the deeper Pro variants and 2.5 fallbacks.
   const plan = await getPlan(planCode);
-  if (!plan) return ["claude-haiku-4-5", "gpt-4o-mini", "gemini-flash-latest"];
+  if (!plan) return ["gemini-3-flash-preview", "gemini-flash-latest"];
   if (planCode === "free") {
     return [
-      "claude-haiku-4-5",
-      "gpt-4o-mini",
+      "gemini-3-flash-preview",
+      "gemini-3.1-flash-lite",
       "gemini-flash-latest",
       "gemini-flash-lite-latest",
-      "gemini-3.1-flash-lite",
     ];
   }
   if (planCode === "instr_basic") {
     return [
-      "claude-haiku-4-5",
-      "claude-3-5-haiku-latest",
-      "gpt-4o-mini",
-      "gemini-flash-latest",
-      "gemini-flash-lite-latest",
       "gemini-3-flash-preview",
       "gemini-3.1-flash-lite",
+      "gemini-flash-latest",
+      "gemini-flash-lite-latest",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
     ];
   }
-  // Pro / premium / org tiers — everything.
+  // Pro / premium / org tiers — full Gemini lineup.
   return [
-    "claude-opus-4-7",
-    "claude-sonnet-4-6",
-    "claude-haiku-4-5",
-    "claude-3-5-sonnet-latest",
-    "claude-3-5-haiku-latest",
-    "gpt-4o",
-    "gpt-4o-mini",
-    "gpt-4.1",
-    "gpt-4.1-mini",
     "gemini-3-pro-preview",
     "gemini-3-flash-preview",
     "gemini-3.1-pro-preview",

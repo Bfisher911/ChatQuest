@@ -17,7 +17,9 @@ const KNOWN_DEPRECATED_MODELS = new Set([
   "gemini-2.0-flash-lite",
   "gemini-1.5-pro",
   "gemini-1.5-flash",
-  "gemini-3-flash", // bare name briefly used; real name is gemini-3-flash-preview
+  // Bare names that briefly appeared but never resolved on Google's API.
+  // The canonical names use the -preview suffix.
+  "gemini-3-flash",
   "gemini-3-pro",
   "gemini-3-flash-lite",
 ]);
@@ -41,40 +43,42 @@ function detectIssues(): Issue[] {
         <>
           <code>DEFAULT_CHAT_MODEL</code> is set to <code>{def}</code> on the
           server. That model is no longer reachable on the provider&apos;s API
-          and any bot relying on the runtime default will fail. Set it to a
-          current model (recommended:{" "}
-          <code>gemini-3-flash-preview</code>, <code>claude-haiku-4-5</code>,
-          or <code>gpt-4o-mini</code>) on Netlify and redeploy.
+          and any bot relying on the runtime default will fail. Set it to{" "}
+          <code>gemini-3-flash-preview</code> (recommended) or{" "}
+          <code>gemini-flash-latest</code> on Netlify and redeploy.
         </>
       ),
     });
   }
 
-  // 2) No LLM provider keys present.
-  const hasAny =
-    !!process.env.ANTHROPIC_API_KEY ||
-    !!process.env.OPENAI_API_KEY ||
-    !!process.env.GEMINI_API_KEY ||
-    !!process.env.GOOGLE_API_KEY;
-  if (!hasAny) {
+  // 2) Gemini key missing — this deployment is Gemini-only, so no key
+  //    means nothing works.
+  const hasGeminiKey = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
+  if (!hasGeminiKey) {
     issues.push({
       severity: "error",
-      title: "No LLM provider configured",
+      title: "Gemini key not configured",
       body: (
         <>
-          None of <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>,
-          or <code>GEMINI_API_KEY</code> are set. Every chatbot, the AI
-          generator, and KB embeddings will fail. Add at least one in your
-          hosting env vars and redeploy.
+          <code>GEMINI_API_KEY</code> (or <code>GOOGLE_API_KEY</code>) is not
+          set. Every chatbot, the AI generator, and KB embeddings will fail.
+          Get a key from{" "}
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noreferrer"
+            style={{ textDecoration: "underline", color: "inherit" }}
+          >
+            Google AI Studio
+          </a>{" "}
+          and add it on Netlify, then redeploy.
         </>
       ),
     });
   }
 
-  // 3) Embedding provider mismatch — set to gemini but no Gemini key.
+  // 3) Embedding provider sanity check — should be gemini, with key set.
   const ep = process.env.EMBEDDING_PROVIDER?.toLowerCase().trim();
-  const hasGeminiKey = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
-  const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
   if (ep === "gemini" && !hasGeminiKey) {
     issues.push({
       severity: "error",
@@ -82,22 +86,22 @@ function detectIssues(): Issue[] {
       body: (
         <>
           <code>EMBEDDING_PROVIDER=gemini</code> but no Gemini key is set.
-          KB document upload + retrieval will fail. Set{" "}
-          <code>GEMINI_API_KEY</code> or change{" "}
-          <code>EMBEDDING_PROVIDER</code> to <code>openai</code>.
+          KB document upload + retrieval will fail. Add{" "}
+          <code>GEMINI_API_KEY</code> on Netlify.
         </>
       ),
     });
   }
-  if (ep === "openai" && !hasOpenAIKey) {
+  if (ep && ep !== "gemini") {
     issues.push({
-      severity: "error",
-      title: "Embedding provider misconfigured",
+      severity: "warn",
+      title: "Embedding provider is not Gemini",
       body: (
         <>
-          <code>EMBEDDING_PROVIDER=openai</code> but no OpenAI key is set.
-          KB upload / retrieval will fail. Add <code>OPENAI_API_KEY</code> or
-          switch to <code>EMBEDDING_PROVIDER=gemini</code>.
+          <code>EMBEDDING_PROVIDER={ep}</code>. This deployment is configured
+          Gemini-only — set <code>EMBEDDING_PROVIDER=gemini</code> and{" "}
+          <code>EMBEDDING_MODEL=text-embedding-004</code> on Netlify, then
+          redeploy.
         </>
       ),
     });

@@ -11,19 +11,16 @@ const MIN_LENGTH = 20;
 export function GenerateChatrailForm() {
   const router = useRouter();
   const [prompt, setPrompt] = React.useState("");
-  // Default to Haiku — it produces a great Chatrail in ~5–10s vs Sonnet's
-  // 25–45s, and the latter often bumped against Netlify's Lambda timeout
-  // for 7-node plans. Creators can opt up to Sonnet or Gemini 3 Pro for
-  // deeper drafts, or pick Gemini 3 Flash for the cheapest path.
+  // Gemini-only deployment. Default to gemini-3-flash-preview (fast, cheap,
+  // current). Creators can opt up to Pro for deeper drafts.
   type DesignerModel =
-    | "claude-haiku-4-5"
-    | "claude-sonnet-4-6"
-    | "gpt-4o"
-    | "gpt-4o-mini"
     | "gemini-3-flash-preview"
     | "gemini-3-pro-preview"
-    | "gemini-flash-latest";
-  const [model, setModel] = React.useState<DesignerModel>("claude-haiku-4-5");
+    | "gemini-flash-latest"
+    | "gemini-pro-latest"
+    | "gemini-2.5-flash"
+    | "gemini-2.5-pro";
+  const [model, setModel] = React.useState<DesignerModel>("gemini-3-flash-preview");
   const [pending, setPending] = React.useState(false);
   const [progress, setProgress] = React.useState<string>("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -155,19 +152,12 @@ export function GenerateChatrailForm() {
             className="cq-select"
             style={{ minWidth: 260 }}
           >
-            <optgroup label="Anthropic Claude">
-              <option value="claude-haiku-4-5">claude-haiku-4-5 (default — ~5–10s)</option>
-              <option value="claude-sonnet-4-6">claude-sonnet-4-6 (deeper drafts — ~25–40s)</option>
-            </optgroup>
-            <optgroup label="OpenAI">
-              <option value="gpt-4o-mini">gpt-4o-mini (cheap, fast)</option>
-              <option value="gpt-4o">gpt-4o (alternative)</option>
-            </optgroup>
-            <optgroup label="Google Gemini">
-              <option value="gemini-3-flash-preview">gemini-3-flash-preview (fast)</option>
-              <option value="gemini-3-pro-preview">gemini-3-pro-preview (deepest)</option>
-              <option value="gemini-flash-latest">gemini-flash-latest (auto-tracking)</option>
-            </optgroup>
+            <option value="gemini-3-flash-preview">gemini-3-flash-preview (default — fast)</option>
+            <option value="gemini-3-pro-preview">gemini-3-pro-preview (deepest drafts)</option>
+            <option value="gemini-flash-latest">gemini-flash-latest (auto-tracking)</option>
+            <option value="gemini-pro-latest">gemini-pro-latest (auto-tracking, deeper)</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash (legacy)</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro (legacy)</option>
           </select>
         </label>
         <span className="cq-mono" style={{ fontSize: 11, color: "var(--muted)" }}>

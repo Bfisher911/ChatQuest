@@ -9,21 +9,23 @@ import { logUsage } from "@/lib/llm/usage";
 
 const generateSchema = z.object({
   prompt: z.string().min(20, "Describe the Chatrail in at least 20 characters.").max(4000),
+  // Gemini-only deployment. Restricted to current 3.x family + auto-tracking
+  // aliases + 2.5 fallbacks. Default = gemini-3-flash-preview (fast + cheap +
+  // current canonical name).
   model: z
     .enum([
-      "claude-haiku-4-5",
-      "claude-sonnet-4-6",
-      "claude-3-5-sonnet-latest",
-      "gpt-4o",
-      "gpt-4o-mini",
-      // Gemini 3 designer-model options. Pro is best for deep curriculum
-      // structure; Flash is cheapest fast option; latest auto-tracks.
       "gemini-3-flash-preview",
       "gemini-3-pro-preview",
+      "gemini-3.1-pro-preview",
+      "gemini-3.1-flash-lite",
       "gemini-flash-latest",
       "gemini-pro-latest",
+      "gemini-flash-lite-latest",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
     ])
-    .default("claude-haiku-4-5"),
+    .default("gemini-3-flash-preview"),
 });
 
 export type GenerateChatrailResult =
