@@ -31,12 +31,17 @@ export function NewProgramForm() {
       </div>
       <div className="cq-field">
         <label htmlFor="defaultModel">Default chat model</label>
-        <select id="defaultModel" name="defaultModel" defaultValue="claude-haiku-4-5" className="cq-select">
-          <option value="claude-haiku-4-5">claude-haiku-4-5</option>
-          <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
-          <option value="claude-opus-4-7">claude-opus-4-7</option>
-          <option value="gpt-4o-mini">gpt-4o-mini</option>
-          <option value="gpt-4o">gpt-4o</option>
+        <select id="defaultModel" name="defaultModel" defaultValue="gemini-3-flash-preview" className="cq-select">
+          <option value="gemini-3-flash-preview">gemini-3-flash-preview (recommended)</option>
+          <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
+          <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+          <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+          <option value="gemini-flash-latest">gemini-flash-latest (auto-tracking)</option>
+          <option value="gemini-pro-latest">gemini-pro-latest (auto-tracking)</option>
+          <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
         </select>
       </div>
       <div>

@@ -52,18 +52,18 @@ Live Supabase project for this build:
 | `SUPABASE_SERVICE_ROLE_KEY` | Get from <https://supabase.com/dashboard/project/qucizmsdoswunfsnqjam/settings/api> |
 | `SUPABASE_DB_URL` | Get from <https://supabase.com/dashboard/project/qucizmsdoswunfsnqjam/settings/database> (use the session pooler URL on port 5432) |
 
-LLM keys — set at least one:
+LLM key — Gemini-only deployment:
 
 | Var | Notes |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Claude (default chat model is `claude-haiku-4-5`) |
-| `OPENAI_API_KEY` | GPT-4o family + recommended for embeddings |
-| `GEMINI_API_KEY` | Gemini 2.0/1.5 — already filled in `.env.local` |
+| `GEMINI_API_KEY` | Google Gemini (default chat model is `gemini-3-flash-preview`). Get one at <https://aistudio.google.com/app/apikey>. |
 
-Embedding provider:
+The provider abstraction in `lib/llm/provider.ts` also supports Anthropic and OpenAI, but the UI pickers, server-side enums, and plan gating are all restricted to Gemini. `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are not required and can be left blank or removed.
 
-- `EMBEDDING_PROVIDER=openai` (recommended, `text-embedding-3-small`, 1536-dim native)
-- `EMBEDDING_PROVIDER=gemini` (uses `text-embedding-004`, 768-dim padded to 1536 — works without an OpenAI key)
+Embedding provider — Gemini's `text-embedding-004` (768-dim, padded to 1536 to match the pgvector column shape):
+
+- `EMBEDDING_PROVIDER=gemini`
+- `EMBEDDING_MODEL=text-embedding-004`
 
 ### 3. Database
 

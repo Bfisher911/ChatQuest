@@ -15,7 +15,7 @@ const SECTIONS = [
     title: "CHATBOT NODES",
     items: [
       "Per-node system prompt, model, temperature, token cap, attempts, points.",
-      "Pluggable models — Claude (Haiku / Sonnet / Opus) and OpenAI (gpt-4o family).",
+      "Google Gemini models — pick from gemini-3-flash-preview, gemini-3-pro-preview, gemini-2.5-flash, and the auto-tracking *-latest aliases.",
       "Streaming responses via SSE; token usage tracked per call.",
     ],
   },

@@ -244,7 +244,7 @@ export function BotInspector(props: InspectorProps) {
     cfg?.system_prompt ?? "You are a helpful tutor. Probe assumptions; demand citations from the program knowledge base.",
   );
   const [learnerInstructions, setLearnerInstructions] = React.useState(cfg?.learner_instructions ?? "");
-  const [model, setModel] = React.useState(cfg?.model ?? "claude-haiku-4-5");
+  const [model, setModel] = React.useState(cfg?.model ?? "gemini-3-flash-preview");
   const [temperature, setTemperature] = React.useState(String(cfg?.temperature ?? 0.4));
   const [tokenBudget, setTokenBudget] = React.useState(String(cfg?.token_budget ?? 8000));
   const [maxTokens, setMaxTokens] = React.useState(String(cfg?.max_tokens ?? 1024));
@@ -264,7 +264,7 @@ export function BotInspector(props: InspectorProps) {
     setDueAt(isoToLocalInput(props.node.due_at));
     setSystemPrompt(cfg?.system_prompt ?? "You are a helpful tutor. Probe assumptions; demand citations from the program knowledge base.");
     setLearnerInstructions(cfg?.learner_instructions ?? "");
-    setModel(cfg?.model ?? "claude-haiku-4-5");
+    setModel(cfg?.model ?? "gemini-3-flash-preview");
     setTemperature(String(cfg?.temperature ?? 0.4));
     setTokenBudget(String(cfg?.token_budget ?? 8000));
     setMaxTokens(String(cfg?.max_tokens ?? 1024));
@@ -372,25 +372,16 @@ export function BotInspector(props: InspectorProps) {
             value={model}
             onChange={(e) => setModel(e.target.value)}
           >
-            <optgroup label="Anthropic">
-              <option value="claude-haiku-4-5">claude-haiku-4-5</option>
-              <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
-              <option value="claude-opus-4-7">claude-opus-4-7</option>
-              <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
-              <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest</option>
-            </optgroup>
-            <optgroup label="OpenAI">
-              <option value="gpt-4o-mini">gpt-4o-mini</option>
-              <option value="gpt-4o">gpt-4o</option>
-              <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-              <option value="gpt-4.1">gpt-4.1</option>
-            </optgroup>
-            <optgroup label="Google Gemini">
-              <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-              <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
-              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-            </optgroup>
+            <option value="gemini-3-flash-preview">gemini-3-flash-preview (recommended)</option>
+            <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
+            <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+            <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+            <option value="gemini-flash-latest">gemini-flash-latest (auto-tracking)</option>
+            <option value="gemini-pro-latest">gemini-pro-latest (auto-tracking)</option>
+            <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
           </select>
         </div>
         <div className="cq-field">

@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
     { role: "user", content: message },
   ];
 
-  const model = (bot.model as ChatModel) ?? "claude-haiku-4-5";
+  const model = (bot.model as ChatModel) ?? "gemini-3-flash-preview";
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

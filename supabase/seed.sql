@@ -78,7 +78,7 @@ begin
   values (v_prog, v_org, v_instr,
           'AI Ethics Simulation Path',
           'A high-stakes simulation: brief the Secretary on autonomous triage AI. Cite frameworks. Push back on talking points.',
-          'published', 'claude-haiku-4-5', 80.00)
+          'published', 'gemini-3-flash-preview', 80.00)
   on conflict (id) do nothing;
 
   insert into public.program_instructors (program_id, user_id, capacity) values
@@ -124,7 +124,7 @@ begin
     'You are a Socratic policy advisor running a simulation with a learner. Probe assumptions. Demand citations. Reference the program knowledge base before answering. After every learner turn, ask one sharper follow-up question. Do not give the answer; lead them to it.',
     'Surface concrete trade-offs between equity, public trust, and contractual obligation in autonomous decision systems.',
     'Learner cites at least 2 named frameworks, identifies affected stakeholder groups, drafts a public statement.',
-    'claude-haiku-4-5', 0.4, 1024, 8000, 2, v_rubric, true, true
+    'gemini-3-flash-preview', 0.4, 1024, 8000, 2, v_rubric, true, true
   )
   on conflict (node_id) do update set
     system_prompt = excluded.system_prompt,
