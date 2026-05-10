@@ -104,14 +104,21 @@ async function probeGemini(): Promise<ProviderResult> {
     const model = client.getGenerativeModel({ model: modelName });
     const res = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: PING_PROMPT }] }],
-      generationConfig: { maxOutputTokens: 8 },
+      // Bumped from 8 to 32: gemini-3-flash-preview occasionally returns
+      // an empty body when capped at 8 tokens (the tokenizer counts hidden
+      // overhead, exhausting the budget before any visible token emits).
+      // 32 tokens is still ~free per probe and gives a reliable signal.
+      generationConfig: { maxOutputTokens: 32 },
     });
     const text = res.response.text().trim();
+    const finishReason = res.response.candidates?.[0]?.finishReason;
     return {
       configured: true,
       reachable: true,
       ms: Date.now() - t0,
-      detail: `replied "${text.slice(0, 32)}"`,
+      detail: text
+        ? `replied "${text.slice(0, 32)}"`
+        : `empty reply (finishReason=${finishReason ?? "unknown"})`,
       model: modelName,
     };
   } catch (err) {
