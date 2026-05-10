@@ -78,11 +78,39 @@ function isGemini(model: ChatModel) {
   return model.startsWith(GEMINI_PREFIX);
 }
 
+// Names Google has deprecated (or that briefly appeared but never resolved
+// on their API). If DEFAULT_CHAT_MODEL is set to one of these, pickDefault()
+// substitutes the canonical recommended model so the runtime keeps working.
+// The misconfig banner still surfaces the configuration drift so the user
+// can fix it on Netlify, but they're not blocked while they get there.
+const DEPRECATED_DEFAULT_MODELS = new Set<string>([
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-pro",
+  "gemini-1.5-flash",
+  "gemini-3-flash",
+  "gemini-3-pro",
+  "gemini-3-flash-lite",
+  // Legacy Anthropic / OpenAI defaults that may still be sitting in
+  // Netlify env vars from earlier multi-provider configurations.
+  "claude-haiku-4-5",
+  "claude-sonnet-4-6",
+  "claude-opus-4-7",
+  "gpt-4o-mini",
+  "gpt-4o",
+]);
+
 function pickDefault(): ChatModel {
   // Gemini-only deployment: fallback to gemini-3-flash-preview when
-  // DEFAULT_CHAT_MODEL is unset. Anthropic / OpenAI keys may exist but
-  // the deployment intentionally doesn't depend on them.
-  return (process.env.DEFAULT_CHAT_MODEL as ChatModel) || "gemini-3-flash-preview";
+  // DEFAULT_CHAT_MODEL is unset OR pointing at a deprecated name. The
+  // banner + /api/diagnostics summary still flag the bad env var so the
+  // user knows to fix it, but the runtime degrades gracefully instead of
+  // 404-ing on every chat request.
+  const env = process.env.DEFAULT_CHAT_MODEL?.trim();
+  if (!env || DEPRECATED_DEFAULT_MODELS.has(env)) {
+    return "gemini-3-flash-preview";
+  }
+  return env as ChatModel;
 }
 
 let _anthropic: Anthropic | null = null;

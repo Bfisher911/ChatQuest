@@ -193,8 +193,10 @@ export async function GET(req: Request) {
     probeSupabase(),
   ]);
 
-  const llmAny = [anthropic, openai, gemini].some((p) => p.configured && p.reachable);
-  const overall = supabase.reachable === true && llmAny;
+  // The deployment is Gemini-only. Anthropic + OpenAI may show configured if
+  // the user has those keys set, but the site never calls them — only Gemini
+  // reachability gates the "ok" flag.
+  const overall = supabase.reachable === true && gemini.reachable === true;
 
   return NextResponse.json(
     {
@@ -217,6 +219,16 @@ export async function GET(req: Request) {
   );
 }
 
+const KNOWN_DEPRECATED_DEFAULT_MODELS = new Set([
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-pro",
+  "gemini-1.5-flash",
+  "gemini-3-flash",
+  "gemini-3-pro",
+  "gemini-3-flash-lite",
+]);
+
 function summarize({
   anthropic,
   openai,
@@ -231,19 +243,29 @@ function summarize({
   overall: boolean;
 }): string {
   if (overall) {
-    const working = [anthropic, openai, gemini].filter((p) => p.reachable).length;
-    return `Operational. ${working} LLM provider${working === 1 ? "" : "s"} reachable.`;
+    const def = process.env.DEFAULT_CHAT_MODEL?.trim() ?? "";
+    const extras: string[] = [];
+    if (anthropic.configured) extras.push("Anthropic");
+    if (openai.configured) extras.push("OpenAI");
+    const extraNote = extras.length
+      ? ` ${extras.join(" + ")} key${extras.length === 1 ? " is" : "s are"} also set but unused (safe to remove).`
+      : "";
+    if (def && KNOWN_DEPRECATED_DEFAULT_MODELS.has(def)) {
+      return `Reachable but DEFAULT_CHAT_MODEL="${def}" is deprecated. Set it to "gemini-3-flash-preview" on Netlify and redeploy.${extraNote}`;
+    }
+    return `Operational. Gemini-only deployment.${extraNote}`;
   }
   if (!supabase.reachable) {
     return `Supabase unreachable: ${supabase.detail}. Check SUPABASE_SERVICE_ROLE_KEY + NEXT_PUBLIC_SUPABASE_URL.`;
   }
-  const noLlm = !anthropic.configured && !openai.configured && !gemini.configured;
-  if (noLlm) {
-    return "No LLM provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in Netlify env vars and redeploy.";
+  if (!gemini.configured) {
+    return "Gemini key not configured. Set GEMINI_API_KEY in Netlify env vars and redeploy. Get a key at https://aistudio.google.com/app/apikey.";
+  }
+  if (gemini.configured && !gemini.reachable) {
+    return `Gemini configured but unreachable: ${gemini.detail}.`;
   }
   const failures: string[] = [];
   if (anthropic.configured && !anthropic.reachable) failures.push(`Anthropic: ${anthropic.detail}`);
   if (openai.configured && !openai.reachable) failures.push(`OpenAI: ${openai.detail}`);
-  if (gemini.configured && !gemini.reachable) failures.push(`Gemini: ${gemini.detail}`);
-  return `LLM provider keys are set but all calls failed. ${failures.join(" | ")}`;
+  return `Unexpected state. ${failures.join(" | ")}`;
 }

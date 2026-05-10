@@ -18,15 +18,28 @@ fails. /pricing 500s.
 **Recovery:** wait for Supabase, OR fail over to a different project
 (see "swap projects" below).
 
-### B. LLM provider down
+### B. Gemini down or rate-limited
 
-**Symptoms:** chats fail with 500 or 5xx upstream errors, /api/health shows
-the failing provider as unreachable.
+**Symptoms:** chats fail with 500 or 5xx upstream errors, `/api/diagnostics`
+shows `providers.gemini.reachable: false`.
+
+This deployment is Gemini-only — there is no automatic failover. Options
+in priority order:
 
 **First response:**
-1. Check provider status pages (Anthropic / OpenAI / Google AI).
-2. Update DEFAULT_CHAT_MODEL on Netlify to one of the other providers.
-3. Tell instructors to set their bot's model to a working provider.
+1. Check Google AI Studio status: <https://status.cloud.google.com/>.
+2. Check whether you've hit the daily free-tier quota (free tier is
+   capped at ~50 RPD on `gemini-3-flash-preview`). Hit
+   `/api/diagnostics?gemini=list` to verify the key still authenticates.
+3. If quota: upgrade the Gemini key tier in Google AI Studio. New quotas
+   apply within a few minutes.
+4. If outage: there is no good remediation. The provider abstraction in
+   `lib/llm/provider.ts` still supports Anthropic + OpenAI, so a temporary
+   failover is possible by setting `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
+   on Netlify and updating `DEFAULT_CHAT_MODEL` to the corresponding
+   model name — but the UI pickers and plan gating will still only show
+   Gemini, so existing bot configs would need their `model` column edited
+   directly.
 
 ### C. Stripe webhook failure
 

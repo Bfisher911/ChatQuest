@@ -152,19 +152,15 @@ styles/
 
 The adapter at `lib/llm/provider.ts` auto-routes by model name prefix:
 
-- `claude-*` → Anthropic
-- `gpt-*`, `o*`, `chatgpt*` → OpenAI
-- `gemini-*` → Google Gemini
-
-Set `DEFAULT_CHAT_MODEL` in `.env.local` to control the default for new chatbot nodes. The instructor can override per-node.
-
-If you only have a Gemini key, set:
+The provider abstraction in `lib/llm/provider.ts` routes by model-name prefix (`gemini-*` → Google, `claude-*` → Anthropic, `gpt-*`/`o*`/`chatgpt*` → OpenAI), but **the live deployment is Gemini-only** — UI pickers, the AI generator, and plan gating all restrict to Gemini. Set:
 
 ```
-DEFAULT_CHAT_MODEL=gemini-2.0-flash
+DEFAULT_CHAT_MODEL=gemini-3-flash-preview
 EMBEDDING_PROVIDER=gemini
 EMBEDDING_MODEL=text-embedding-004
 ```
+
+If `DEFAULT_CHAT_MODEL` is unset OR points at a deprecated name (`gemini-2.0-*`, `gemini-1.5-*`, bare `gemini-3-flash`/`gemini-3-pro`, or any Claude/GPT model), `pickDefault()` substitutes `gemini-3-flash-preview` at runtime so chats keep working — but the dashboard misconfig banner will surface the drift so you fix it on Netlify.
 
 ## Scripts
 
